@@ -1,1 +1,8 @@
-# Contributing to SuperLotto
+# Contributing to Super
+
+
+
+Lotto
+
+
+

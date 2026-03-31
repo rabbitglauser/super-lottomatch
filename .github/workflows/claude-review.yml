@@ -30,26 +30,35 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          DIFF=$(cat pr_diff.txt)
+          # Truncate diff to ~100KB to stay within context limits
+          head -c 100000 pr_diff.txt > pr_diff_truncated.txt
 
-          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+          # Build JSON payload using jq --rawfile to avoid shell expansion issues
+          jq -n --rawfile diff pr_diff_truncated.txt \
+            '{
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 2048,
+              messages: [{
+                role: "user",
+                content: ("Review this pull request diff. Provide feedback on:\n- Code quality and best practices\n- Potential bugs or issues\n- Security concerns\n- Suggestions for improvement\n\nDiff:\n" + $diff)
+              }]
+            }' > payload.json
+
+          # Call the API and capture both response body and HTTP status
+          HTTP_CODE=$(curl -s -o response.json -w '%{http_code}' \
+            https://api.anthropic.com/v1/messages \
             -H "Content-Type: application/json" \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
-            -d "$(jq -n \
-              --arg diff "$DIFF" \
-              '{
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 2048,
-                messages: [{
-                  role: "user",
-                  content: ("Review this pull request diff. Provide feedback on:\n- Code quality and best practices\n- Potential bugs or issues\n- Security concerns\n- Suggestions for improvement\n\nDiff:\n" + $diff)
-                }]
-              }'
-            )")
+            -d @payload.json)
 
-          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "Error: no response from Claude"')
-          echo "$REVIEW" > review_output.txt
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            ERROR_MSG=$(jq -r '.error.message // "Unknown error"' response.json)
+            echo "API request failed with HTTP $HTTP_CODE: $ERROR_MSG" > review_output.txt
+          else
+            REVIEW=$(jq -r '.content[0].text // "Error: empty response from Claude"' response.json)
+            echo "$REVIEW" > review_output.txt
+          fi
 
       - name: Post review comment
         env:

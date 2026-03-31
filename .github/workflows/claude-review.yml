@@ -29,7 +29,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           DIFF=$(cat pr_diff.txt)
-          
+
           RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
             -H "Content-Type: application/json" \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -45,21 +45,13 @@ jobs:
                 }]
               }'
             )")
-          
+
           REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text')
-          
-          # Save review to file (handles multiline)
           echo "$REVIEW" > review_output.txt
 
       - name: Post review comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          REVIEW=$(cat review_output.txt)
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --body "## 🤖 Claude Code Review
-
-  $REVIEW
-
----
-*Reviewed by Claude (claude-sonnet-4-20250514)*"
+          BODY=$(printf "## 🤖 Claude Code Review\n\n%s\n\n---\n*Reviewed by Claude (claude-sonnet-4-20250514)*" "$(cat review_output.txt)")
+          gh pr comment ${{ github.event.pull_request.number }} --body "$BODY"

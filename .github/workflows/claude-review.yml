@@ -19,8 +19,10 @@ jobs:
 
       - name: Get PR diff
         id: diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git diff origin/${{ github.base_ref }}...origin/${{ github.head_ref }} > pr_diff.txt
+          gh pr diff ${{ github.event.pull_request.number }} > pr_diff.txt
           echo "diff_size=$(wc -c < pr_diff.txt)" >> $GITHUB_OUTPUT
 
       - name: Review with Claude
@@ -29,7 +31,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           DIFF=$(cat pr_diff.txt)
-          
+
           RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
             -H "Content-Type: application/json" \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -45,21 +47,13 @@ jobs:
                 }]
               }'
             )")
-          
-          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text')
-          
-          # Save review to file (handles multiline)
+
+          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "Error: no response from Claude"')
           echo "$REVIEW" > review_output.txt
 
       - name: Post review comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          REVIEW=$(cat review_output.txt)
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --body "## 🤖 Claude Code Review
-
-  $REVIEW
-
----
-*Reviewed by Claude (claude-sonnet-4-20250514)*"
+          BODY=$(printf "## 🤖 Claude Code Review\n\n%s\n\n---\n*Reviewed by Claude (claude-sonnet-4-20250514)*" "$(cat review_output.txt)")
+          gh pr comment ${{ github.event.pull_request.number }} --body "$BODY"

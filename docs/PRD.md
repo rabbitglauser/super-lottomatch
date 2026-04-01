@@ -1,9 +1,9 @@
 # Project Trace — SuperLottomatch
 ## System Specification v1.0
 
-**Date:** 2026-03-31
-**Status:** Shipping
-**Team Size:** 4
+**Date:** 2026-03-31  
+**Status:** In Development  
+**Team Size:** 4  
 **Timeline:** 5 weeks (GIBZ M426)
 
 ---
@@ -27,21 +27,39 @@
 
 ## 1. Executive Summary
 
-SuperLottomatch is a web application that digitalizes the annual Lottomatch raffle event organized by STV Ennetbürgen. It replaces the current manual workflow of paper slips and Excel spreadsheets with a mobile-friendly guest registration system, QR-code-based check-in, and an automated raffle draw. The system consists of a Next.js guest-facing app, a Next.js admin dashboard, a Python FastAPI backend, and a MySQL database.
+SuperLottomatch is a web application that digitalizes the annual Lottomatch raffle event organized by STV Ennetbürgen. It replaces the current manual workflow of paper slips and Excel spreadsheets with a web-based guest registration system, fast guest lookup/check-in, and a digital raffle draw workflow.
+
+The system consists of:
+
+- a **guest-facing web app** for registration and guest-code display
+- an **admin dashboard** for check-ins, guest management, and raffle draws
+- a **FastAPI backend**
+- a **MySQL database**
 
 Key facts:
+
 - **80%+ returning guests** year over year
 - **Two-day event** with guests potentially attending both days
 - **Target demographic:** majority aged 40+
-- **Marketing channel:** postal mail (email considered for future)
-- **Team:** 4 members working in Scrum over 5 sprints
+- **Main marketing channel:** postal mail
+- **OS-independent:** browser-based solution
+- **Team:** 4 members working in Scrum over 5 weeks
+
+The database design supports:
+
+- guest and address management
+- attendance on multiple event days
+- one raffle chance per guest per Lottomatch event
+- future-ready postal campaign tracking
 
 ---
 
 ## 2. Problem Statement
 
 ### Current State
+
 The STV Ennetbürgen currently manages the Lottomatch raffle through a semi-digital process:
+
 - Guest addresses are stored in an Excel spreadsheet, each with a unique ID
 - Returning guests receive pre-printed paper slips with their address and ID via postal mail
 - New guests fill out blank paper slips at the event
@@ -49,16 +67,19 @@ The STV Ennetbürgen currently manages the Lottomatch raffle through a semi-digi
 - Guests not seen in 3+ years are removed from the list
 
 ### Pain Points
+
 | Problem | Impact |
 |---------|--------|
-| Manual Excel matching during the event | Slow — 30+ seconds per guest, creates bottlenecks |
+| Manual Excel matching during the event | Slow and error-prone, creates bottlenecks |
 | Handwritten slips from new guests | Hard to read, leads to data entry errors |
 | No real-time attendance tracking | Club members cannot see who has checked in |
-| 3-year cleanup rule is manual | Easy to forget, leads to stale data or accidental deletions |
-| Paper slips can be lost | Guests may not be entered into the raffle |
+| 3-year cleanup rule is manual | Easy to forget, leads to stale data |
+| Paper slips can be lost | Guests may not be entered correctly |
+| Two-day event handling is awkward | Same guest may appear twice, hard to track participation clearly |
 
 ### Opportunity
-Digitalize the entire flow from address registration through raffle draw, reducing check-in time from 30+ seconds to under 5 seconds per guest while eliminating manual data entry errors.
+
+The process can be digitalized from guest registration to the actual draw. This reduces manual work, improves data quality, supports the two-day event structure, and makes the system easier to use for non-technical club members.
 
 ---
 
@@ -75,6 +96,8 @@ graph TB
 
     subgraph Backend ["Backend (FastAPI)"]
         API[REST API]
+        AUTH[JWT Auth]
+        DRAW[Draw Service]
     end
 
     subgraph Database ["Database (MySQL)"]
@@ -83,124 +106,188 @@ graph TB
 
     GA -->|HTTP| API
     AD -->|HTTP| API
+    API --> AUTH
+    API --> DRAW
     API -->|SQLAlchemy| DB
 ```
 
-### User Flow
+### Main User Flow
 
 ```mermaid
 sequenceDiagram
     participant G as Guest
     participant App as Guest App
+    participant Admin as Admin Dashboard
     participant API as FastAPI
     participant DB as MySQL
-    participant Admin as Admin Dashboard
 
-    Note over G,Admin: Registration (before or at event)
+    Note over G,DB: Registration
     G->>App: Opens registration page
     App->>API: POST /api/guests
-    API->>DB: Insert guest record
-    API-->>App: Guest ID + QR code
-    App-->>G: Shows QR code to save
+    API->>DB: Insert address and guest
+    API-->>App: guest_id + guest_code
+    App-->>G: Displays guest code / QR
 
-    Note over G,Admin: Check-in (at event)
-    G->>Admin: Shows QR code
-    Admin->>API: POST /api/attendance
-    API->>DB: Record attendance
-    API-->>Admin: Confirmation
+    Note over G,DB: Check-in at event
+    G->>Admin: Shows guest code / states name
+    Admin->>API: POST /api/checkins
+    API->>DB: Store check-in for selected event day
+    API-->>Admin: Check-in confirmation
 
-    Note over G,Admin: Raffle (during event)
-    Admin->>API: POST /api/raffle/draw
-    API->>DB: Select random checked-in guest
+    Note over G,DB: Raffle draw
+    Admin->>API: POST /api/draws
+    API->>DB: Build distinct guest pool for event
+    API->>DB: Pick random eligible guest
+    API->>DB: Store draw result
     API-->>Admin: Winner details
 ```
+
+### Key Design Decisions
+
+- The application is **browser-based** and therefore OS-independent
+- The Lottomatch is modeled as **one event with multiple event days**
+- Check-ins are stored **per event day**
+- The raffle draw is based on **distinct guests per event**, so a guest attending both days only counts once in the raffle pool
+- Postal mail remains the main marketing channel, while email support stays optional for the future
 
 ---
 
 ## 4. Guest App Specification
 
-The guest-facing app is a public Next.js application optimized for mobile devices and older users.
+The guest-facing app is a public web application optimized for mobile devices and simple usage.
 
 ### Pages
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | Landing Page | Event branding, two CTAs: "Ich bin neu" (new guest) and "Ich war schon da" (returning guest) |
-| `/register` | Registration | Form: Vorname, Nachname, Strasse, PLZ, Ort. On submit: shows personal QR code |
-| `/checkin` | Returning Guest | Enter last name or scan pre-printed QR code from invitation letter. Confirms identity, one-tap check-in |
-| `/confirmed` | Confirmation | "Du bist dabei!" message with QR code to save/screenshot |
+| `/` | Landing Page | Simple start page with two main actions: new guest registration and returning guest lookup |
+| `/register` | Registration | Form for first name, last name, street, house number, postal code, city, optional phone/email |
+| `/confirmed` | Confirmation | Shows registration success and the personal guest code / QR code |
+| `/lookup` | Returning Guest Lookup | Optional helper page to look up guest data by guest code or name |
 
 ### Design Constraints
 
 - **Minimum font size:** 18px for body text
 - **Touch targets:** minimum 48px height
-- **Contrast:** WCAG AA compliant (4.5:1 ratio minimum)
-- **Language:** German throughout
-- **Max steps:** 2 screens to complete any action
-- **No login required** for guests
-- **Responsive:** mobile-first, works on laptop at event station
+- **Language:** German
+- **Very low complexity:** few steps, large buttons, clear labels
+- **No guest login required**
+- **Responsive:** mobile-first, but also usable on a laptop
+
+### Core Guest Use Cases
+
+1. New guest enters address data
+2. System creates guest record and guest code
+3. Guest saves or screenshots the code / QR
+4. Returning guest can be found quickly using code or name
+5. At the event, the club member performs the actual check-in in the admin dashboard
 
 ---
 
 ## 5. Admin Dashboard Specification
 
-The admin dashboard is a protected Next.js application used by STV club members to manage guests, perform check-ins, and run the raffle.
+The admin dashboard is the internal part of the application used by club members.
 
 ### Pages
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/admin/login` | Login | Single shared password for all club members |
-| `/admin/guests` | Guest List | Searchable/filterable table of all guests. Columns: ID, Name, Address, Last Attended, Status. Inline edit. CSV export for postal mail merge |
-| `/admin/checkin` | Check-in Station | QR code scanner via device camera. Manual name lookup as fallback. Shows guest info on scan, one-click confirm |
-| `/admin/raffle` | Raffle Draw | Select event day (Day 1, Day 2, or both). "Draw Winner" button with animated reveal. Draw history to prevent duplicates. Redraw option |
-| `/admin/cleanup` | Address Cleanup | Lists guests not attended in 3+ years. Bulk select and archive/delete. Run before sending next year's invitations |
+| `/admin/login` | Login | Member login for authorized users |
+| `/admin/guests` | Guest List | Searchable list of guests with address data, guest code, and last attendance |
+| `/admin/checkins` | Check-in Station | Fast lookup by guest code or name, then check-in for a selected event day |
+| `/admin/draws` | Raffle Draw | Select prize and draw a random eligible guest from the event |
+| `/admin/events` | Event Management | Manage the Lottomatch event and its event days |
+| `/admin/cleanup` | Cleanup View | Shows guests with no participation in 3+ years |
+| `/admin/export` | CSV Export | Export guest data for postal mail merge |
 
 ### Authentication
-- Single shared password set via environment variable
-- JWT token issued on login, valid for 24 hours (covers one event day)
-- No individual user accounts — appropriate for ~10 club members with no IT knowledge
+
+- Authorized club members log in with stored member accounts
+- Roles support at least **admin** and **member**
+- JWT token is issued on login
+- Session remains valid for the active event day
+- The UI should still stay very simple because the customer has little IT knowledge
+
+### Admin Use Cases
+
+- Search guest by name or guest code
+- Register a new guest quickly at the event
+- Check in a guest for a specific day
+- See who already checked in
+- Run raffle draws based on the current event
+- Export guest data for postal mail
+- Identify inactive guests for cleanup
+
+### Optional Future Scope
+
+The schema supports postal campaign tracking, but the **minimum viable product** can already succeed with guest export only. Detailed campaign management can be added later if the team wants.
 
 ---
 
 ## 6. Backend Specification
 
 ### Technology
+
 - **Runtime:** Python 3.12+
 - **Framework:** FastAPI
 - **ORM:** SQLAlchemy 2.0
 - **Validation:** Pydantic v2
 - **Server:** Uvicorn
-- **Auth:** PyJWT
+- **Auth:** JWT
+- **Database:** MySQL 8.0
 
 ### Project Structure
 
-```
+```text
 backend/
 ├── app/
-│   ├── main.py              # FastAPI app, CORS, router includes
-│   ├── database.py           # Database connection and session management
-│   ├── config.py             # Environment variables and settings
+│   ├── main.py
+│   ├── database.py
+│   ├── config.py
 │   ├── routers/
-│   │   ├── guests.py         # Guest CRUD and search
-│   │   ├── attendance.py     # Check-in and attendance
-│   │   ├── raffle.py         # Raffle draw logic
-│   │   ├── events.py         # Event management
-│   │   └── auth.py           # Admin authentication
+│   │   ├── auth.py
+│   │   ├── guests.py
+│   │   ├── checkins.py
+│   │   ├── draws.py
+│   │   ├── events.py
+│   │   └── campaigns.py
 │   ├── models/
-│   │   ├── guest.py          # Guest SQLAlchemy model
-│   │   ├── event.py          # Event SQLAlchemy model
-│   │   ├── attendance.py     # Attendance SQLAlchemy model
-│   │   └── raffle_draw.py    # RaffleDraw SQLAlchemy model
-│   └── schemas/
-│       ├── guest.py          # Guest Pydantic schemas
-│       ├── event.py          # Event Pydantic schemas
-│       ├── attendance.py     # Attendance Pydantic schemas
-│       └── raffle.py         # Raffle Pydantic schemas
+│   │   ├── user.py
+│   │   ├── address.py
+│   │   ├── guest.py
+│   │   ├── lotto_event.py
+│   │   ├── event_day.py
+│   │   ├── checkin.py
+│   │   ├── prize.py
+│   │   ├── draw.py
+│   │   ├── mail_campaign.py
+│   │   └── campaign_recipient.py
+│   ├── schemas/
+│   │   ├── auth.py
+│   │   ├── guest.py
+│   │   ├── checkin.py
+│   │   ├── draw.py
+│   │   ├── event.py
+│   │   └── campaign.py
+│   └── services/
+│       ├── raffle_service.py
+│       ├── guest_service.py
+│       └── export_service.py
 ├── tests/
 ├── requirements.txt
 └── Dockerfile
 ```
+
+### Backend Responsibilities
+
+- Validate input data
+- Create and update guest/address records
+- Handle check-ins for specific event days
+- Build the raffle pool from **distinct guests per event**
+- Execute the draw and persist the result
+- Authenticate admin users
+- Export guest data for postal mailing
+- Optionally manage campaign tracking
 
 ---
 
@@ -208,92 +295,205 @@ backend/
 
 ### Entity-Relationship Diagram
 
-```mermaid
-erDiagram
-    guests ||--o{ attendance : "checks in"
-    guests ||--o{ raffle_draws : "wins"
-    events ||--o{ attendance : "has"
-    events ||--o{ raffle_draws : "has"
+ERD version without a separate raffle entry table:
 
-    guests {
-        int id PK
-        varchar first_name
-        varchar last_name
-        varchar street
-        varchar postal_code
-        varchar city
-        varchar email
-        varchar qr_code UK
-        datetime created_at
-        datetime updated_at
-    }
+![ERD without raffle table](docs/screenshots/ERD-without-Raffle.png)
 
-    events {
-        int id PK
-        varchar name
-        date event_date
-        datetime created_at
-    }
+### DBML Source
 
-    attendance {
-        int id PK
-        int guest_id FK
-        int event_id FK
-        datetime checked_in_at
-    }
+```dbml
+// enum = unchangeable values
 
-    raffle_draws {
-        int id PK
-        int event_id FK
-        int winner_guest_id FK
-        datetime drawn_at
-    }
+Enum user_role {
+  admin
+  member
+}
+
+Enum checkin_method {
+  guest_code
+  manual_form
+  self_registration
+  member_registration
+  qr_code
+}
+
+Enum campaign_channel {
+  post
+  email
+}
+
+Enum recipient_status {
+  planned
+  printed
+  sent
+  returned
+}
+
+Table users {
+  id int [pk, increment]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  role user_role [not null, default: 'member']
+  is_active boolean [not null, default: true]
+  created_at datetime [not null]
+}
+
+Table addresses {
+  id int [pk, increment]
+  street varchar(150) [not null]
+  house_number varchar(20) [not null]
+  address_line_2 varchar(150)
+  postal_code varchar(20) [not null]
+  city varchar(100) [not null]
+
+  Indexes {
+    (street, house_number, postal_code, city) [unique]
+  }
+}
+
+Table guests {
+  id int [pk, increment]
+  guest_code varchar(30) [not null, unique, note: 'Eindeutige ID auf vorgedrucktem Zettel / QR-Code']
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  address_id int [not null]
+  phone varchar(30)
+  email varchar(255)
+  allow_email_marketing boolean [not null, default: false]
+  allow_post_marketing boolean [not null, default: true]
+  notes text
+  deleted_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  Indexes {
+    last_name
+    (first_name, last_name)
+  }
+}
+
+Table lotto_events {
+  id int [pk, increment]
+  name varchar(150) [not null]
+  event_year int [not null]
+  location varchar(150)
+  start_date date [not null]
+  end_date date [not null]
+  created_at datetime [not null]
+}
+
+Table event_days {
+  id int [pk, increment]
+  event_id int [not null]
+  day_number int [not null, note: 'E.g 1 or 2']
+  event_date date [not null]
+  checkin_open_at datetime
+  checkin_close_at datetime
+
+  Indexes {
+    (event_id, day_number) [unique]
+    (event_id, event_date) [unique]
+  }
+}
+
+Table checkins {
+  id int [pk, increment]
+  event_day_id int [not null]
+  guest_id int [not null]
+  method checkin_method [not null]
+  is_new_guest boolean [not null, default: false]
+  checked_in_at datetime [not null]
+  created_by_user_id int [not null]
+  notes text
+
+  Indexes {
+    (event_day_id, guest_id) [unique]
+  }
+}
+
+Table prizes {
+  id int [pk, increment]
+  event_day_id int [not null]
+  title varchar(150) [not null]
+  description text
+  created_at datetime [not null]
+}
+
+Table draws {
+  id int [pk, increment]
+  event_id int [not null]
+  prize_id int [not null, unique]
+  guest_id int [not null]
+  drawn_at datetime [not null]
+  drawn_by_user_id int [not null]
+  notes text
+
+  Indexes {
+    (event_id, guest_id)
+  }
+}
+
+Table mail_campaigns {
+  id int [pk, increment]
+  event_id int [not null]
+  name varchar(150) [not null]
+  channel campaign_channel [not null, default: 'post']
+  created_by_user_id int [not null]
+  created_at datetime [not null]
+
+  Indexes {
+    (event_id, channel) [unique]
+  }
+}
+
+Table campaign_recipients {
+  id int [pk, increment]
+  campaign_id int [not null]
+  guest_id int [not null]
+  recipient_status recipient_status [not null, default: 'planned']
+  include_prefilled_slip boolean [not null, default: true]
+  sent_at datetime
+
+  Indexes {
+    (campaign_id, guest_id) [unique]
+  }
+}
+
+Ref: "guests"."address_id" > "addresses"."id"
+
+Ref: "lotto_events"."id" < "event_days"."event_id"
+
+Ref: "event_days"."id" < "checkins"."event_day_id"
+Ref: "guests"."id" < "checkins"."guest_id"
+Ref: "users"."id" < "checkins"."created_by_user_id"
+
+Ref: "event_days"."id" < "prizes"."event_day_id"
+
+Ref: "lotto_events"."id" < "draws"."event_id"
+Ref: "prizes"."id" - "draws"."prize_id"
+Ref: "guests"."id" < "draws"."guest_id"
+Ref: "users"."id" < "draws"."drawn_by_user_id"
+
+Ref: "lotto_events"."id" < "mail_campaigns"."event_id"
+Ref: "users"."id" < "mail_campaigns"."created_by_user_id"
+
+Ref: "guests"."id" < "campaign_recipients"."guest_id"
+Ref: "mail_campaigns"."id" < "campaign_recipients"."campaign_id"
 ```
 
-### Table Definitions
+### Schema Notes
 
-**guests**
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT |
-| first_name | VARCHAR(100) | NOT NULL |
-| last_name | VARCHAR(100) | NOT NULL |
-| street | VARCHAR(200) | NOT NULL |
-| postal_code | VARCHAR(10) | NOT NULL |
-| city | VARCHAR(100) | NOT NULL |
-| email | VARCHAR(200) | NULLABLE (for future email marketing) |
-| qr_code | VARCHAR(36) | UNIQUE, NOT NULL (UUID v4) |
-| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-| updated_at | DATETIME | ON UPDATE CURRENT_TIMESTAMP |
-
-**events**
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT |
-| name | VARCHAR(100) | NOT NULL |
-| event_date | DATE | NOT NULL |
-| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-
-**attendance**
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT |
-| guest_id | INT | FOREIGN KEY → guests.id, NOT NULL |
-| event_id | INT | FOREIGN KEY → events.id, NOT NULL |
-| checked_in_at | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-| | | UNIQUE(guest_id, event_id) |
-
-**raffle_draws**
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT |
-| event_id | INT | FOREIGN KEY → events.id, NOT NULL |
-| winner_guest_id | INT | FOREIGN KEY → guests.id, NOT NULL |
-| drawn_at | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+- **users** stores admin/member accounts
+- **addresses** stores normalized address data
+- **guests** stores guest identity and references one address
+- **lotto_events** stores the yearly Lottomatch event
+- **event_days** stores the individual days of a Lottomatch
+- **checkins** stores attendance per guest and per event day
+- **prizes** stores prizes assigned to a specific event day
+- **draws** stores the raffle results
+- **mail_campaigns** and **campaign_recipients** support postal mailing processes and future extensions
 
 ---
 
@@ -305,14 +505,32 @@ Not applicable for this project.
 
 ## 9. Data Model
 
-See [Section 7: Database Schema](#7-database-schema) for the full entity-relationship diagram and table definitions.
+See [Section 7: Database Schema](#7-database-schema) for the full ERD and DBML source.
 
 ### Key Relationships
-- A **guest** can attend many **events** (via the attendance join table)
-- An **event** spans one day — a two-day Lottomatch is modeled as two separate events
-- A **guest** can only check in once per event (UNIQUE constraint on guest_id + event_id)
-- A **raffle draw** references both the event and the winning guest
-- A guest can win multiple times across different events but not twice in the same event draw session
+
+- A **guest** has one **address**
+- A **Lottomatch event** has multiple **event days**
+- A **guest** can check in on multiple **event days**
+- A guest can only check in **once per event day**
+- A **prize** belongs to one **event day**
+- A **draw** references the **event**, the **prize**, and the winning **guest**
+- The raffle pool is built from **distinct guests per event**
+- A guest attending both days is still only counted once in the raffle pool
+- A **mail campaign** belongs to one **event**
+- A **campaign recipient** links a **guest** to a **campaign**
+
+### Raffle Logic
+
+The application does **not** use a separate raffle entry table. Instead:
+
+1. Guests check in on one or more event days
+2. The backend collects all checked-in guests for the selected event
+3. The guest list is reduced to **distinct guest IDs**
+4. A random eligible guest is selected
+5. The result is stored in `draws`
+
+This keeps the model simpler while still preventing double raffle entries from guests who attend both days.
 
 ---
 
@@ -320,16 +538,40 @@ See [Section 7: Database Schema](#7-database-schema) for the full entity-relatio
 
 All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 
+### Auth
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/auth/login` | Member/admin login | No |
+| GET | `/api/auth/me` | Current authenticated user | Yes |
+
+**POST /api/auth/login** — Request:
+```json
+{
+  "email": "mitglied@superlottomatch.local",
+  "password": "***"
+}
+```
+
+**POST /api/auth/login** — Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "expires_in": 86400,
+  "role": "member"
+}
+```
+
 ### Guests
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | POST | `/api/guests` | Register a new guest | No |
-| GET | `/api/guests` | List all guests (paginated, searchable) | Yes |
+| GET | `/api/guests` | List guests | Yes |
 | GET | `/api/guests/{id}` | Get guest by ID | Yes |
-| GET | `/api/guests/qr/{qr_code}` | Look up guest by QR code | No |
-| PUT | `/api/guests/{id}` | Update guest info | Yes |
-| DELETE | `/api/guests/{id}` | Remove guest | Yes |
+| GET | `/api/guests/code/{guest_code}` | Look up guest by guest code | Yes |
+| PUT | `/api/guests/{id}` | Update guest | Yes |
+| DELETE | `/api/guests/{id}` | Soft-delete guest | Yes |
 | GET | `/api/guests/export` | Export guest list as CSV | Yes |
 
 **POST /api/guests** — Request:
@@ -337,177 +579,215 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 {
   "first_name": "Hans",
   "last_name": "Müller",
-  "street": "Dorfstrasse 12",
+  "street": "Dorfstrasse",
+  "house_number": "12",
   "postal_code": "6373",
-  "city": "Ennetbürgen"
+  "city": "Ennetbürgen",
+  "phone": "0791234567",
+  "email": "hans.mueller@example.ch"
 }
 ```
 
-**POST /api/guests** — Response (201):
+**POST /api/guests** — Response:
 ```json
 {
   "id": 1,
+  "guest_code": "GL-2026-000001",
   "first_name": "Hans",
   "last_name": "Müller",
-  "street": "Dorfstrasse 12",
-  "postal_code": "6373",
-  "city": "Ennetbürgen",
-  "qr_code": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "address": {
+    "street": "Dorfstrasse",
+    "house_number": "12",
+    "postal_code": "6373",
+    "city": "Ennetbürgen"
+  },
   "created_at": "2026-03-31T10:00:00"
 }
 ```
 
-### Attendance
+### Lotto Events
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/attendance` | Check in a guest | Yes |
-| GET | `/api/attendance?event_id={id}` | List attendance for an event | Yes |
-| GET | `/api/guests/{id}/attendance` | Attendance history for a guest | Yes |
+| POST | `/api/events` | Create a Lottomatch event | Yes |
+| GET | `/api/events` | List events | Yes |
+| GET | `/api/events/{id}` | Get event details | Yes |
+| GET | `/api/events/{id}/days` | List event days | Yes |
+| POST | `/api/events/{id}/days` | Add an event day | Yes |
 
-**POST /api/attendance** — Request:
+### Check-ins
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/checkins` | Check in a guest for an event day | Yes |
+| GET | `/api/checkins?event_day_id={id}` | List check-ins for an event day | Yes |
+| GET | `/api/guests/{id}/checkins` | Check-in history for a guest | Yes |
+
+**POST /api/checkins** — Request:
 ```json
 {
   "guest_id": 1,
-  "event_id": 1
+  "event_day_id": 1,
+  "method": "qr_code"
 }
 ```
 
-### Raffle
+**POST /api/checkins** — Response:
+```json
+{
+  "id": 1,
+  "guest_id": 1,
+  "event_day_id": 1,
+  "method": "qr_code",
+  "checked_in_at": "2026-04-05T18:42:00"
+}
+```
+
+### Prizes
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/raffle/draw` | Draw a random winner from checked-in guests | Yes |
-| GET | `/api/raffle/history?event_id={id}` | List past draws for an event | Yes |
+| GET | `/api/prizes?event_day_id={id}` | List prizes for an event day | Yes |
+| POST | `/api/prizes` | Create prize | Yes |
 
-**POST /api/raffle/draw** — Request:
+### Draws
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/draws` | Draw a winner for a prize | Yes |
+| GET | `/api/draws?event_id={id}` | List draw history for an event | Yes |
+
+**POST /api/draws** — Request:
 ```json
 {
-  "event_id": 1
+  "event_id": 1,
+  "prize_id": 1
 }
 ```
 
-**POST /api/raffle/draw** — Response (200):
+**POST /api/draws** — Response:
 ```json
 {
   "id": 1,
   "event_id": 1,
+  "prize_id": 1,
   "winner": {
     "id": 7,
     "first_name": "Maria",
     "last_name": "Steiner",
     "city": "Stans"
   },
-  "drawn_at": "2026-03-31T20:30:00"
+  "drawn_at": "2026-04-05T20:30:00"
 }
 ```
 
-### Events
+### Campaigns (Optional / Future-Ready)
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/events` | Create an event | Yes |
-| GET | `/api/events` | List all events | Yes |
-| GET | `/api/events/{id}` | Get event details | Yes |
-
-### Auth
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/auth/login` | Admin login | No |
-
-**POST /api/auth/login** — Request:
-```json
-{
-  "password": "***"
-}
-```
-
-**POST /api/auth/login** — Response (200):
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "expires_in": 86400
-}
-```
+| GET | `/api/campaigns` | List campaigns | Yes |
+| POST | `/api/campaigns` | Create campaign | Yes |
+| GET | `/api/campaigns/{id}/recipients` | List campaign recipients | Yes |
 
 ---
 
 ## 11. Infrastructure
 
 ### Repository
+
 - **GitHub:** `rabbitglauser/super-lottomatch`
-- **Structure:** Monorepo with `/frontend` and `/backend` top-level directories
+- **Structure:** Monorepo with `/frontend` and `/backend`
 
 ### CI/CD Pipeline
+
 - **Platform:** GitHub Actions
 - **Trigger:** Every push and pull request on all branches
 - **Stages:**
-  1. Install dependencies (frontend + backend in parallel)
-  2. Lint (ESLint for frontend, Ruff for backend)
-  3. Run tests (Jest for frontend, pytest for backend)
-  4. Check coverage (fail if below 75%)
-  5. Build (Next.js build for frontend)
-  6. Deploy (on `main` branch only)
+  1. Install dependencies
+  2. Run linting
+  3. Run tests
+  4. Check coverage threshold
+  5. Build frontend and backend
+  6. Deploy on `main`
 
 ### Deployment
+
 | Component | Platform | Notes |
 |-----------|----------|-------|
-| Frontend | Vercel | Automatic Next.js deployment, free tier |
-| Backend | Railway or Render | Python runtime, free tier |
-| Database | PlanetScale or Railway | MySQL 8.0, free tier |
+| Frontend | Vercel | Easy deployment for Next.js |
+| Backend | Railway or Render | Suitable for FastAPI |
+| Database | Railway MySQL | Simple managed MySQL option |
 
 ### Local Development
-- **Docker Compose** for MySQL + backend + frontend
-- Hot reload enabled for both frontend and backend
+
+- Docker Compose for frontend, backend, and database
+- Hot reload for frontend and backend
+- Seed script for demo data
 
 ---
 
 ## 12. Testing Strategy
 
 ### Coverage Target
-- **Minimum:** 75% line coverage for both frontend and backend
-- **CI enforcement:** Build fails if any test fails or coverage drops below threshold
 
-### Backend Testing (pytest)
+- **Minimum:** 75% line coverage
+- **CI enforcement:** pipeline fails if tests fail or coverage drops too low
+
+### Backend Testing
+
 | Area | What to test |
 |------|-------------|
-| Guest CRUD | Create, read, update, delete operations |
-| Attendance | Check-in, duplicate prevention (unique constraint), history retrieval |
-| Raffle | Random draw from checked-in guests only, exclusion of already-drawn winners |
-| Auth | Password validation, JWT token generation and expiry |
-| Validation | Pydantic schema validation for all endpoints |
-| CSV Export | Correct format and content of guest list export |
+| Auth | Login, token creation, token validation |
+| Guest CRUD | Create, update, fetch, soft-delete |
+| Address handling | Correct creation and relation to guests |
+| Check-ins | Valid check-in, duplicate prevention per event day |
+| Events | Create event and event days |
+| Draws | Eligible guest selection from distinct event participants |
+| Prizes | Prize creation and lookup |
+| Export | Guest export format for postal mailing |
 
-**Tools:** pytest, pytest-cov, httpx (for async test client)
+### Frontend Testing
 
-### Frontend Testing (Jest + React Testing Library)
 | Area | What to test |
 |------|-------------|
-| Registration form | Field validation, submission, QR code display |
-| Check-in flow | QR scan trigger, name lookup, confirmation |
-| Admin dashboard | Guest list rendering, search/filter, raffle draw |
-| Components | Buttons, inputs, modals render correctly |
-
-**Tools:** Jest, React Testing Library, @testing-library/user-event
+| Registration form | Field validation and submission |
+| Guest confirmation | Guest code / QR display |
+| Check-in flow | Lookup, confirmation, duplicate handling |
+| Admin lists | Guest search, filter, rendering |
+| Draw UI | Prize selection, winner display |
+| Auth screens | Login handling and protected routes |
 
 ### Integration Testing
-- FastAPI `TestClient` for end-to-end API tests
-- SQLite in-memory database for fast test execution
+
+- End-to-end API tests with FastAPI test client
+- Test database for isolated runs
+- Draw logic tests to verify that one guest only enters once per event
 
 ---
 
 ## 13. Demo Data
 
-A seed script (`backend/seed.py`) populates the database with realistic test data:
+A seed script (`backend/seed.py`) populates the database with realistic test data.
 
-### Events
-| Name | Date |
-|------|------|
-| Lottomatch 2026 — Tag 1 | 2026-04-05 |
-| Lottomatch 2026 — Tag 2 | 2026-04-06 |
+### Lotto Event
+
+| Field | Value |
+|------|-------|
+| Name | Lottomatch 2026 |
+| Event Year | 2026 |
+| Location | Ennetbürgen |
+| Start Date | 2026-04-05 |
+| End Date | 2026-04-06 |
+
+### Event Days
+
+| Day Number | Date |
+|-----------|------|
+| 1 | 2026-04-05 |
+| 2 | 2026-04-06 |
 
 ### Sample Guests (20)
+
 Swiss-German addresses from the Ennetbürgen region:
 
 | # | Name | Address |
@@ -533,9 +813,27 @@ Swiss-German addresses from the Ennetbürgen region:
 | 19 | Stefan Waser | Kernserstrasse 10, 6060 Sarnen |
 | 20 | Claudia Murer | Stansstaderstrasse 8, 6362 Stansstad |
 
-### Pre-seeded Attendance
-- 15 of 20 guests checked in for Tag 1 (guests 1–15)
-- Simulates the 80% returning guest rate
+### Pre-seeded Check-ins
 
-### Pre-seeded Raffle Draws
-- 2 draws for Tag 1: Guest #7 (Werner Lussi) and Guest #12 (Heidi Zimmermann)
+- Day 1: guests 1–15 checked in
+- Day 2: guests 1–8 and 16–18 checked in
+
+This dataset is useful for testing:
+
+- repeated attendance across both days
+- guests attending only one day
+- duplicate check-in prevention
+- raffle pool generation based on distinct guests
+
+### Pre-seeded Prizes
+
+| Prize | Event Day |
+|------|-----------|
+| Früchtekorb | Day 1 |
+| Gutschein CHF 50 | Day 1 |
+| Geschenkkorb | Day 2 |
+| Restaurantgutschein | Day 2 |
+
+### Pre-seeded Draws
+
+Optional seed data can include one or two existing draws for testing draw history and duplicate handling.

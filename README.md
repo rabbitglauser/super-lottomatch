@@ -1,8 +1,24 @@
-# SuperLottomatch
+<h1 align="center">
+  <img
+    src=""
+    alt="SuperLottomatch"
+    width="200"
+  />
+  <br/>
+  Project Trace — SuperLottomatch
+</h1>
 
-A web application that digitalizes the annual Lottomatch raffle event for STV Ennetbürgen. Replaces manual paper slips and Excel spreadsheets with QR-code-based guest registration, instant check-in, and automated raffle draws.
+<p align="center">
+  Software mit agilen Methoden entwickeln<br/>
+  made at the <strong>GIBZ for M426 2026</strong>.
+</p>
 
-**GIBZ M426 — Software mit agilen Methoden entwickeln**
+<p align="center">
+  <a href="https://foodflighttracker.com"><img src="https://img.shields.io/badge/Live-TBD.com-9eca45?style=for-the-badge" alt="Live Demo"/></a>
+  <a href="https://github.com/Nepomuk5665/food-flight-tracker/tree/main/docs"><img src="https://img.shields.io/badge/Docs-Architektur-003a5d?style=for-the-badge" alt="Docs"/></a>
+  <a href="https://www.figma.com/design/4XAMeiD6nuGZ4HwsxqE1gT/Untitled?node-id=0-1&p=f"><img src="https://img.shields.io/badge/Figma-Mockup-F24E1E?style=for-the-badge&logo=figma&logoColor=white" alt="Figma"/></a>
+  <a href="https://www.notion.so/Cassandra-333e987f6a44807686f0f6a995211171?source=copy_link"><img src="https://img.shields.io/badge/Notion-Documentation-000000?style=for-the-badge&logo=notion&logoColor=white" alt="Notion"/></a>
+</p>
 
 ## Team
 

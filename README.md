@@ -21,6 +21,10 @@
   <a href="https://www.notion.so/Cassandra-333e987f6a44807686f0f6a995211171?source=copy_link"><img src="https://img.shields.io/badge/Notion-Documentation-000000?style=for-the-badge&logo=notion&logoColor=white" alt="Notion"/></a>
 </p>
 
+live-frontend: https://superlottomatch.vercel.app/
+
+live-Backend: https://super-lottomatch.onrender.com/
+
 ## Team
 
 | Role | Name |

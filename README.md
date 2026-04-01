@@ -1,12 +1,13 @@
 <h1 align="center">
   <img
-    src=""
+    src="https://github.com/user-attachments/assets/d62fb261-f036-4ef4-81a6-b4af5cf7d1e9"
     alt="SuperLottomatch"
     width="200"
   />
   <br/>
   Project Trace — SuperLottomatch
 </h1>
+
 
 <p align="center">
   Software mit agilen Methoden entwickeln<br/>

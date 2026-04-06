@@ -39,14 +39,22 @@ pip install -r requirements.txt
 pytest
 
 # Run with coverage report
-pytest --cov=app --cov-report=term-missing
+pytest --cov=. --cov-report=term-missing
 
 # Run a specific test file
-pytest tests/test_guests.py
+pytest tests/test_main.py
 
 # Run with verbose output
 pytest -v
 ```
+
+### Current Implementation Status
+
+The current backend test suite is a minimal FastAPI smoke-test setup for the existing `main.py` app:
+
+- `backend/tests/conftest.py` provides a shared async `httpx` client fixture
+- `backend/tests/test_main.py` verifies the root endpoint response
+- Additional endpoint, database, and service tests can be added as the backend grows
 
 ### What's Covered
 
@@ -154,13 +162,13 @@ Integration tests verify that the full API works end-to-end with a real database
 
 ```bash
 # Backend
-cd backend && pytest --cov=app --cov-report=term-missing
+cd backend && pytest --cov=. --cov-report=term-missing
 
 # Frontend
 cd frontend && npm test -- --coverage
 
 # Both (from project root)
-cd backend && pytest --cov=app && cd ../frontend && npm test -- --coverage
+cd backend && pytest --cov=. && cd ../frontend && npm test -- --coverage
 ```
 
 ---

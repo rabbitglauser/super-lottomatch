@@ -1,5 +1,8 @@
 # Scrum-Dokumentation — SuperLottomatch
 
+**Date:** 2026-06-04
+**Status:** Ratified
+
 **Modul:** M426 (GIBZ)  
 **Projektdauer:** 5 Wochen  
 **Sprintlänge:** 1 Woche

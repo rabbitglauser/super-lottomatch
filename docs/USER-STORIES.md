@@ -1,5 +1,9 @@
 # USER STORIES
 
+**Date:** 2026-06-04
+**Status:** Ratified
+
+
 This file contains the user stories for the Super-Lottomatch project. Each story is written in the standard format (As a <role>, I want <goal> so that <benefit>), plus clear Acceptance Criteria, Definition of Done, Priority and an initial size estimate.
 
 ---

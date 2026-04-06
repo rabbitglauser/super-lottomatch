@@ -1,5 +1,8 @@
 # Testing Strategy — SuperLottomatch
 
+**Date:** 2026-06-04
+**Status:** In Development
+
 ## Overview
 
 SuperLottomatch uses a layered testing approach covering unit tests, integration tests, and end-to-end validation. The target is **>75% line coverage** for both frontend and backend, enforced by CI.

@@ -1,5 +1,8 @@
 # Security Policy — SuperLottomatch
 
+**Date:** 2026-06-04
+**Status:** Ratified
+
 ## Core Principles
 
 1. **Least Privilege:** Every service and person receives only the minimum permissions necessary.

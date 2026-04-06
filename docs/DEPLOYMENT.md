@@ -1,5 +1,9 @@
 # Deployment — SuperLottomatch
 
+
+**Date:** 2026-06-04
+**Status:** In Development
+
 ## Overview
 
 SuperLottomatch uses **GitHub Actions** for CI/CD. Every push triggers the pipeline; deployments to production happen automatically when changes are merged to `main`.

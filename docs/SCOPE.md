@@ -1,5 +1,8 @@
 # Project Scope — SuperLottomatch
 
+**Date:** 2026-06-04
+**Status:** In Development
+
 **Module:** M426 (GIBZ)  
 **Team:** Sammy (PO), Amarah (SM), Benji (Dev), Oddy (Dev)  
 **Duration:** 5 weeks / 5 sprints  

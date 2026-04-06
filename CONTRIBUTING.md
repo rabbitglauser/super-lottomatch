@@ -1,5 +1,8 @@
 # Contributing to SuperLottomatch
 
+**Date:** 2026-06-04
+**Status:** Ratified
+
 ## Branch Rules
 
 - **Never push directly to `main`.** All changes go through pull requests.

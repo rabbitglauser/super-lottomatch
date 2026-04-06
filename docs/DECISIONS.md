@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
-**Date:** 2026-03-31
-**Status:** Ratified
+**Date:** 2026-06-04
+**Status:** In Development
 
 This document records the critical architectural decisions made during the development of SuperLottomatch. Every choice reflects an evaluation of trade-offs between developer velocity, user experience, and system reliability within the constraints of a 5-week school project (GIBZ M426).
 
@@ -145,11 +145,11 @@ Use a monorepo with top-level directories: `/frontend` (Next.js app) and `/backe
 
 ```
 super-lottomatch/
+├── .github/workflows/ # CI/CD pipeline
+├── docker-compose.yml # Local development environment
 ├── frontend/          # Next.js + React + TypeScript + Tailwind
 ├── backend/           # Python + FastAPI + SQLAlchemy
 ├── docs/              # Project documentation
-├── .github/workflows/ # CI/CD pipeline
-├── docker-compose.yml # Local development environment
 └──.claude/skills      # Claude API key
 ```
 

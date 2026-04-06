@@ -1,0 +1,84 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775503778662,
+  "projectRoot": "D:\\Dev\\Personal\\super-lottomatch",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "backend": {
+      "path": "backend",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1775503778648,
+      "keyFiles": [
+        "Dockerfile",
+        "main.py",
+        "requirements.txt"
+      ]
+    },
+    "database": {
+      "path": "database",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775503778650,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 11,
+      "lastAccessed": 1775503778650,
+      "keyFiles": [
+        "API.md",
+        "ARCHITECTURE.md",
+        "DECISIONS.md",
+        "DEPLOYMENT.md",
+        "PRD.md"
+      ]
+    },
+    "frontend": {
+      "path": "frontend",
+      "purpose": null,
+      "fileCount": 12,
+      "lastAccessed": 1775503778651,
+      "keyFiles": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "Dockerfile",
+        "eslint.config.mjs",
+        "next.config.ts"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

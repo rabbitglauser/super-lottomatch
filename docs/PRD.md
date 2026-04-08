@@ -319,7 +319,7 @@ The raffle service must enforce the following logic:
 ### Entity-Relationship Diagram
 
 The current ERD is documented in:
-![ERD without raffle table](docs/screenshots/ERD-without-Raffle.png)
+![ERD without raffle table](./screenshots/ERD-without-Raffle.png)
 
 ### DBML Source
 

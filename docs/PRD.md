@@ -1,7 +1,7 @@
 # Project Trace — SuperLottomatch
-## System Specification v1.0
+## System Specification v1.1
 
-**Date:** 2026-03-31  
+**Date:** 2026-04-08  
 **Status:** In Development  
 **Team Size:** 4  
 **Timeline:** 5 weeks (GIBZ M426)
@@ -27,7 +27,7 @@
 
 ## 1. Executive Summary
 
-SuperLottomatch is a web application that digitalizes the annual Lottomatch raffle event organized by STV Ennetbürgen. It replaces the current manual workflow of paper slips and Excel spreadsheets with a web-based guest registration system, fast guest lookup/check-in, and a digital raffle draw workflow.
+SuperLottomatch is a web application that digitalizes the annual Lottomatch raffle event organized by STV Ennetbürgen. It replaces the current manual workflow of paper slips and Excel spreadsheets with a web-based guest registration system, fast guest lookup and check-in, and a digital raffle draw workflow.
 
 The system consists of:
 
@@ -49,9 +49,11 @@ The database design supports:
 
 - guest and address management
 - attendance on multiple event days
-- one raffle chance per guest per Lottomatch event
+- one raffle chance **per check-in**
+- QR-code-based quest identification through *guest_code*
 - future-ready postal campaign tracking
 
+Note: A guest who checks in on both event days receives two chances in total, because each check-in is treated as a separate raffle entry. A guest who checks in on only one day receives one chance.
 ---
 
 ## 2. Problem Statement
@@ -75,7 +77,7 @@ The STV Ennetbürgen currently manages the Lottomatch raffle through a semi-digi
 | No real-time attendance tracking | Club members cannot see who has checked in |
 | 3-year cleanup rule is manual | Easy to forget, leads to stale data |
 | Paper slips can be lost | Guests may not be entered correctly |
-| Two-day event handling is awkward | Same guest may appear twice, hard to track participation clearly |
+| Two-day event handling is awkward | Same guest may attend both days, which must be tracked clearly and fairly for the raffle |
 
 ### Opportunity
 
@@ -150,6 +152,14 @@ sequenceDiagram
 - The raffle draw is based on **distinct guests per event**, so a guest attending both days only counts once in the raffle pool
 - Postal mail remains the main marketing channel, while email support stays optional for the future
 
+- The application is **browser-based** and therefore OS-independent
+- The Lottomatch is modeled as **one event with multiple event days**
+- Check-ins are stored **per event day**
+- The raffle draw is based on check-ins, **not on distinct guests**
+- A guest attending both days receives **two chances**, because they produce two check-ins
+- A guest attending only one day receives **one chance**
+- The winning draw entry is stored via `draws.checkin_id`
+- Postal mail remains the main marketing channel, while email support stays optional for the future
 ---
 
 ## 4. Guest App Specification
@@ -214,13 +224,13 @@ The admin dashboard is the internal part of the application used by club members
 - Register a new guest quickly at the event
 - Check in a guest for a specific day
 - See who already checked in
-- Run raffle draws based on the current event
+- Run raffle draws based on the selected prize and its event day
 - Export guest data for postal mail
 - Identify inactive guests for cleanup
 
 ### Optional Future Scope
 
-The schema supports postal campaign tracking, but the **minimum viable product** can already succeed with guest export only. Detailed campaign management can be added later if the team wants.
+The schema supports postal campaign tracking, but the minimum viable product can already succeed with guest export only. Detailed campaign management can be added later if the team wants.
 
 ---
 
@@ -250,6 +260,7 @@ backend/
 │   │   ├── checkins.py
 │   │   ├── draws.py
 │   │   ├── events.py
+│   │   ├── prizes.py
 │   │   └── campaigns.py
 │   ├── models/
 │   │   ├── user.py
@@ -268,6 +279,7 @@ backend/
 │   │   ├── checkin.py
 │   │   ├── draw.py
 │   │   ├── event.py
+│   │   ├── prize.py
 │   │   └── campaign.py
 │   └── services/
 │       ├── raffle_service.py
@@ -283,11 +295,22 @@ backend/
 - Validate input data
 - Create and update guest/address records
 - Handle check-ins for specific event days
-- Build the raffle pool from **distinct guests per event**
+- Build the raffle pool from **eligible check-ins**
+- Ensure a prize is only drawn from check-ins belonging to the same event day as the prize
 - Execute the draw and persist the result
 - Authenticate admin users
 - Export guest data for postal mailing
 - Optionally manage campaign tracking
+
+### Raffle Service Rules
+
+The raffle service must enforce the following logic:
+- each stored check-in counts as one raffle chance
+- one guest may have multiple chances if they checked in on multiple days
+- one guest may only check in once per event day
+- one `checkin_id` may only be used in one draw
+- one `prize_id` may only appear in one draw
+- when drawing a winner, only check-ins from the same event day as the prize are eligible
 
 ---
 
@@ -295,8 +318,7 @@ backend/
 
 ### Entity-Relationship Diagram
 
-ERD version without a separate raffle entry table:
-
+The current ERD is documented in:
 ![ERD without raffle table](docs/screenshots/ERD-without-Raffle.png)
 
 ### DBML Source
@@ -488,11 +510,12 @@ Ref: "mail_campaigns"."id" < "campaign_recipients"."campaign_id"
 - **users** stores admin/member accounts
 - **addresses** stores normalized address data
 - **guests** stores guest identity and references one address
+- **guest_code** is the unique identity and references one address
 - **lotto_events** stores the yearly Lottomatch event
 - **event_days** stores the individual days of a Lottomatch
 - **checkins** stores attendance per guest and per event day
 - **prizes** stores prizes assigned to a specific event day
-- **draws** stores the raffle results
+- **draws** stores the raffle result by linking prize to a winning check-in
 - **mail_campaigns** and **campaign_recipients** support postal mailing processes and future extensions
 
 ---
@@ -514,9 +537,10 @@ See [Section 7: Database Schema](#7-database-schema) for the full ERD and DBML s
 - A **guest** can check in on multiple **event days**
 - A guest can only check in **once per event day**
 - A **prize** belongs to one **event day**
-- A **draw** references the **event**, the **prize**, and the winning **guest**
-- The raffle pool is built from **distinct guests per event**
-- A guest attending both days is still only counted once in the raffle pool
+- A **draw** links one **prize** to one winning **check-in**
+- A winning **check-in** indirectly identifies the winning guest
+- One **check-in** equals **one raffle chance**
+- A guest attending both days has two separate raffle chances
 - A **mail campaign** belongs to one **event**
 - A **campaign recipient** links a **guest** to a **campaign**
 
@@ -525,12 +549,16 @@ See [Section 7: Database Schema](#7-database-schema) for the full ERD and DBML s
 The application does **not** use a separate raffle entry table. Instead:
 
 1. Guests check in on one or more event days
-2. The backend collects all checked-in guests for the selected event
-3. The guest list is reduced to **distinct guest IDs**
-4. A random eligible guest is selected
-5. The result is stored in `draws`
+2. Every stored **check-in** acts as one raffle entry
+3. When a prize is drawn, the backend determines the prize's `event_day_id`
+4. The backend loads all eligible check-ins for that event day
+5. Check-ins already used in `draws` are excluded
+6. A random eligible check-in is selected
+7. The results is stored in `draws` with `prize-id` and `check_id`
 
-This keeps the model simpler while still preventing double raffle entries from guests who attend both days.
+## Important Constraint
+
+Because `draws` stores `checkin_id` and not `guest_id`, the current design prevents the **same check-in** from winning twice, but it does not automatically prevent the same guest from winning twice across diferent days.
 
 ---
 
@@ -577,14 +605,14 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 **POST /api/guests** — Request:
 ```json
 {
-  "first_name": "Hans",
-  "last_name": "Müller",
+  "first_name": "Samuel",
+  "last_name": "Stinker",
   "street": "Dorfstrasse",
-  "house_number": "12",
+  "house_number": "67",
   "postal_code": "6373",
   "city": "Ennetbürgen",
   "phone": "0791234567",
-  "email": "hans.mueller@example.ch"
+  "email": "samuel.stinker@example.ch"
 }
 ```
 
@@ -593,11 +621,11 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 {
   "id": 1,
   "guest_code": "GL-2026-000001",
-  "first_name": "Hans",
-  "last_name": "Müller",
+  "first_name": "Samuel",
+  "last_name": "Stinker",
   "address": {
     "street": "Dorfstrasse",
-    "house_number": "12",
+    "house_number": "67",
     "postal_code": "6373",
     "city": "Ennetbürgen"
   },
@@ -660,7 +688,6 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 **POST /api/draws** — Request:
 ```json
 {
-  "event_id": 1,
   "prize_id": 1
 }
 ```
@@ -669,13 +696,13 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 ```json
 {
   "id": 1,
-  "event_id": 1,
   "prize_id": 1,
+  "checkin_id": 7,
   "winner": {
-    "id": 7,
-    "first_name": "Maria",
-    "last_name": "Steiner",
-    "city": "Stans"
+    "id": 3,
+    "first_name": "Bob",
+    "last_name": "Bob",
+    "city": "Bobcity"
   },
   "drawn_at": "2026-04-05T20:30:00"
 }
@@ -742,7 +769,9 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 | Address handling | Correct creation and relation to guests |
 | Check-ins | Valid check-in, duplicate prevention per event day |
 | Events | Create event and event days |
-| Draws | Eligible guest selection from distinct event participants |
+| Draws | Eligible check-in selection for the prize's event day |
+| Draws | Exclusion of already-used check-ins
+| Draws | Correct handling of guests with one vs. two check-ins
 | Prizes | Prize creation and lookup |
 | Export | Guest export format for postal mailing |
 
@@ -761,7 +790,11 @@ All endpoints are prefixed with `/api`. Request and response bodies are JSON.
 
 - End-to-end API tests with FastAPI test client
 - Test database for isolated runs
-- Draw logic tests to verify that one guest only enters once per event
+- Draw logic tests to verify:
+    - one check-in equals one chance
+    - two check-ins for the same guest equal two chances
+    - one check-in cannot win twice
+    - prize and winning check-in belong to the same event day
 
 ---
 
@@ -792,8 +825,8 @@ Swiss-German addresses from the Ennetbürgen region:
 
 | # | Name | Address |
 |---|------|---------|
-| 1 | Hans Müller | Dorfstrasse 12, 6373 Ennetbürgen |
-| 2 | Maria Steiner | Seeweg 4, 6373 Ennetbürgen |
+| 1 | Samuel Stinker | Dorfstrasse 12, 6373 Ennetbürgen |
+| 2 | Bob Bob | Seeweg 4, 6373 Ennetbürgen |
 | 3 | Peter Amstad | Buochserstrasse 8, 6373 Ennetbürgen |
 | 4 | Anna Barmettler | Stanserstrasse 22, 6373 Ennetbürgen |
 | 5 | Josef Niederberger | Hauptstrasse 15, 6374 Buochs |
@@ -822,8 +855,9 @@ This dataset is useful for testing:
 
 - repeated attendance across both days
 - guests attending only one day
-- duplicate check-in prevention
-- raffle pool generation based on distinct guests
+- duplicate check-in prevention per day
+- raffle eligibility based on check-ins
+- the rule that guests 1-8 have two total chances because the y checked in on both days
 
 ### Pre-seeded Prizes
 

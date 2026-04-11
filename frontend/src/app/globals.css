@@ -10,8 +10,25 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Page */
   --color-page: #FFF0EF;
   --color-text-primary: #111827;
+
+  /* Brand */
+  --color-brand: #B3011A;
+
+  /* Text */
+  --color-heading: #2A1717;
+  --color-muted: #6B4D4A;
+
+  /* Inputs */
+  --color-input-bg: #FFF0EF;
+  --color-input-text: #8B6A66;
+  --color-input-icon: #9A7A75;
+
+  /* Misc */
+  --color-divider: #E9DDDB;
 }
 
 html,

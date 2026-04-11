@@ -5,17 +5,17 @@ import FormField from "./FormField";
 
 export default function LoginForm() {
   return (
-    <div className="w-full max-w-3xl rounded-[2rem] bg-white/70 px-8 py-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:px-12 sm:py-14">
+    <div className="w-full max-w-4xl rounded-[2rem] bg-white/70 px-10 py-14 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:px-16 sm:py-18">
       <div className="mb-12">
-        <h1 className="text-4xl font-bold tracking-tight text-heading">
+        <h1 className="text-5xl font-bold tracking-tight text-heading">
           Login
         </h1>
-        <p className="mt-3 text-xl text-muted">
+        <p className="mt-3 text-2xl text-muted">
           Geben Sie Ihre Zugangsdaten ein.
         </p>
       </div>
 
-      <form className="space-y-8">
+      <form className="space-y-10">
         <FormField
           id="email"
           label="E-Mail"

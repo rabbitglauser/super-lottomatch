@@ -11,7 +11,6 @@ export default function HomePage() {
       <section className="flex w-full items-center justify-center px-6 py-10 lg:w-1/2 lg:px-10">
         <LoginForm />
       </section>
-
         <Footer />
     </main>
   );

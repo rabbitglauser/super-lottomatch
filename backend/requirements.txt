@@ -1,5 +1,8 @@
 fastapi
 uvicorn[standard]
+sqlalchemy
+pymysql
+cryptography
 pytest
 pytest-asyncio
 pytest-cov

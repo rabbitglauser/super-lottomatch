@@ -2,18 +2,18 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "My App",
-  description: "Built with Next.js and Tailwind CSS",
+    title: "My App",
+    description: "Built with Next.js and Tailwind CSS",
 };
 
 export default function RootLayout({
-                                     children,
+                                       children,
                                    }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-      <html lang="en">
-      <body>{children}</body>
-      </html>
-  );
+    return (
+        <html lang="en">
+        <body>{children}</body>
+        </html>
+    );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function Footer() {
+export default function Footer() {
   return (
     <footer className="absolute inset-x-0 bottom-0">
       <div className="mx-auto flex h-16 items-center justify-center gap-8 text-sm font-semibold uppercase tracking-[0.18em] text-footer">

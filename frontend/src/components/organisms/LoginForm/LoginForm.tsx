@@ -4,7 +4,8 @@ import { Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import FormField from "./FormField";
+import Button from "@/components/atoms/Button/Button";
+import FormField from "@/components/molecules/FormField/FormField";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -79,13 +80,9 @@ export default function LoginForm() {
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="h-20 w-full rounded-3xl bg-brand text-2xl font-bold text-white shadow-[0_14px_30px_rgba(179,1,26,0.28)] transition hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-brand/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Anmelden…" : "Anmelden"}
-        </button>
+        </Button>
       </form>
 
       <div className="my-10 h-px w-full bg-divider" />

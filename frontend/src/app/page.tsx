@@ -1,17 +1,7 @@
-import LoginForm from "@/components/Login/LoginForm";
-import { AdminHero } from "@/components/Login/AdminHero";
-import { Footer } from "@/components/Login/footer";
+import AdminHero from "@/components/organisms/AdminHero/AdminHero";
+import LoginForm from "@/components/organisms/LoginForm/LoginForm";
+import LoginTemplate from "@/components/templates/LoginTemplate/LoginTemplate";
 
 export default function HomePage() {
-  return (
-    <main className="relative flex min-h-screen">
-      <section className="hidden w-1/2 items-center justify-center lg:flex">
-        <AdminHero />
-      </section>
-      <section className="flex w-full items-center justify-center px-6 py-10 lg:w-1/2 lg:px-10">
-        <LoginForm />
-      </section>
-        <Footer />
-    </main>
-  );
+  return <LoginTemplate hero={<AdminHero />} form={<LoginForm />} />;
 }

@@ -18,6 +18,8 @@ Read the `explain-project` skill for project context if needed.
 | `docs/ARCHITECTURE.md` | System architecture with diagrams |
 | `docs/PRD.md` | Product requirements (has skeleton — fill in sections) |
 | `docs/DECISIONS.md` | Architecture Decision Records |
+| `docs/UI.md` | UI design overview (umbrella doc for UI conventions) |
+| `docs/ATOMIC-DESIGN.md` | Atomic Design component organisation for the frontend |
 
 ## Diagrams (use Mermaid for GitHub rendering)
 

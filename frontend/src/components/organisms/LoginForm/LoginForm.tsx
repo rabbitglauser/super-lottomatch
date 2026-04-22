@@ -48,7 +48,7 @@ export default function LoginForm() {
         <h1 className="text-5xl font-bold tracking-tight text-heading">
           Login
         </h1>
-        <p className="mt-3 text-2xl text-muted">
+        <p className="mt-3 text-2xl text-muted-custom">
           Geben Sie Ihre Zugangsdaten ein.
         </p>
       </div>
@@ -95,7 +95,7 @@ export default function LoginForm() {
           Passwort vergessen?
         </a>
 
-        <p className="text-lg text-muted">
+        <p className="text-lg text-muted-custom">
           Probleme beim Login?{" "}
           <a
             href="#"

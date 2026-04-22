@@ -25,14 +25,23 @@ Atomic design gives us:
 frontend/src/
 ├── app/                        # Next.js App Router — routes, data, metadata
 │   ├── layout.tsx              # = page shell
-│   ├── page.tsx                # = page
-│   └── dashboard/page.tsx      # = page
-└── components/
-    ├── atoms/                  # Button, Input, Label, Icon, Badge, Spinner
-    ├── molecules/              # FormField, SearchBar, Card
-    ├── organisms/              # LoginForm, AdminHero, Footer, GuestList
-    ├── templates/              # LoginTemplate, DashboardTemplate
-    └── shared/                 # hooks, utils, types (non-UI, outside the pyramid)
+│   ├── page.tsx                # = page (login)
+│   └── dashboard/
+│       ├── layout.tsx          # = dashboard shell (TopNavbar + Sidebar)
+│       ├── page.tsx            # = page
+│       ├── events/page.tsx     # = page
+│       ├── guests/page.tsx     # = page
+│       ├── check-in/page.tsx   # = page
+│       ├── prizes/page.tsx     # = page
+│       ├── data/page.tsx       # = page
+│       └── settings/page.tsx   # = page
+├── components/
+│   ├── atoms/                  # IconButton, Input, Label, NavItem
+│   ├── molecules/              # FormField, NavActions, SidebarHeader, SidebarNav
+│   ├── organisms/              # LoginForm, AdminHero, Footer, Sidebar, TopNavbar
+│   ├── templates/              # LoginTemplate, DashboardTemplate
+│   └── ui/                     # shadcn/ui primitives (Button, etc.)
+└── lib/                        # utils (cn), constants (API_BASE_URL, NAV_ITEMS)
 ```
 
 **One folder per component.** `atoms/Button/Button.tsx` — not `atoms/Button.tsx`. This leaves room for a colocated test file, optional `Button.stories.tsx`, and a local `types.ts` without restructuring later.
@@ -45,9 +54,9 @@ frontend/src/
 
 | Tier | Can import from | Owns state? | Examples |
 |------|-----------------|-------------|----------|
-| **atoms** | nothing (React + Tailwind only) | no — pure presentational | `Button`, `Input`, `Label`, `Icon`, `Spinner` |
-| **molecules** | atoms | local UI state only (focus, hover, toggle) | `FormField`, `PasswordField`, `SearchBar` |
-| **organisms** | atoms, molecules | yes — owns form state, accepts handlers | `LoginForm`, `AdminHero`, `Footer`, `GuestList` |
+| **atoms** | shadcn `ui/` primitives only | no — pure presentational | `IconButton`, `Input`, `Label`, `NavItem` |
+| **molecules** | atoms | local UI state only (focus, hover, toggle) | `FormField`, `NavActions`, `SidebarHeader`, `SidebarNav` |
+| **organisms** | atoms, molecules | yes — owns form state, accepts handlers | `LoginForm`, `AdminHero`, `Footer`, `Sidebar`, `TopNavbar` |
 | **templates** | atoms, molecules, organisms | no — pure layout, content via slots/props | `LoginTemplate`, `DashboardTemplate` |
 | **pages** (`app/**/page.tsx`) | everything above | yes — data fetching, routing, auth | `app/page.tsx`, `app/dashboard/page.tsx` |
 
@@ -76,7 +85,7 @@ Use the **semantic Tailwind tokens** defined in `frontend/src/app/globals.css`:
 | `text-text-primary` | `--color-text-primary` | Default body text |
 | `text-brand` / `bg-brand` | `--color-brand` | Primary brand accents (STV red) |
 | `text-heading` | `--color-heading` | Section headings |
-| `text-muted` | `--color-muted` | Secondary labels, captions |
+| `text-muted-foreground` | `--muted-foreground` | Secondary labels, captions |
 | `bg-input-bg` / `text-input-text` | `--color-input-bg` / `--color-input-text` | Form fields |
 | `text-input-icon` | `--color-input-icon` | Icons inside inputs |
 | `border-divider` | `--color-divider` | Section separators |
@@ -112,22 +121,31 @@ When you're not sure which tier a new component belongs to, answer in order and 
 
 ---
 
-## 6. Mapping the current codebase
+## 6. Current component map
 
-This is the target refactor for what already exists under `frontend/src/components/Login/`. **No code moves as part of this doc** — the refactor is tracked as a follow-up task.
+The atomic design refactor is **complete**. All components follow the tier structure:
 
-| Current file | Target path | Tier | Notes |
-|--------------|-------------|------|-------|
-| `components/Login/FormField.tsx` | `components/molecules/FormField/FormField.tsx` | molecule | Already composes `<label>` + `<input>` + icon. Clean move. |
-| `components/Login/LoginForm.tsx` | `components/organisms/LoginForm/LoginForm.tsx` | organism | Owns form state, composes `FormField`. |
-| `components/Login/AdminHero.tsx` | `components/organisms/AdminHero/AdminHero.tsx` | organism | Branded section. |
-| `components/Login/footer.tsx` | `components/organisms/Footer/Footer.tsx` | organism | Rename file + default export to `Footer` (PascalCase). |
-| `app/page.tsx` | unchanged | page | Will compose a future `LoginTemplate` + `LoginForm`. |
-| `app/dashboard/page.tsx` | unchanged | page | Will compose a future `DashboardTemplate`. |
+| Component | Path | Tier | Notes |
+|-----------|------|------|-------|
+| `IconButton` | `atoms/IconButton/` | atom | Wraps shadcn `Button` (ghost + icon variant) |
+| `Input` | `atoms/Input/` | atom | Custom styled text input |
+| `Label` | `atoms/Label/` | atom | Form label with uppercase styling |
+| `NavItem` | `atoms/NavItem/` | atom | Sidebar link with active state detection |
+| `FormField` | `molecules/FormField/` | molecule | Composes Label + Input + icon |
+| `NavActions` | `molecules/NavActions/` | molecule | Top navbar right-side actions |
+| `SidebarHeader` | `molecules/SidebarHeader/` | molecule | Org icon + name display |
+| `SidebarNav` | `molecules/SidebarNav/` | molecule | Renders NAV_ITEMS via NavItem atoms |
+| `AdminHero` | `organisms/AdminHero/` | organism | Login page branded hero section |
+| `Footer` | `organisms/Footer/` | organism | Copyright + legal links |
+| `LoginForm` | `organisms/LoginForm/` | organism | Login form with API integration |
+| `Sidebar` | `organisms/Sidebar/` | organism | Full sidebar: header + nav + CTA |
+| `TopNavbar` | `organisms/TopNavbar/` | organism | Top bar with branding + actions |
+| `DashboardTemplate` | `templates/DashboardTemplate/` | template | TopNavbar + Sidebar + content slot |
+| `LoginTemplate` | `templates/LoginTemplate/` | template | Hero + form two-column layout |
 
-**Missing tiers to create during the refactor:**
-- `atoms/Button/`, `atoms/Input/`, `atoms/Label/` — currently inlined inside `FormField` and `LoginForm`. Extract during the refactor, not before.
-- `templates/LoginTemplate/` — the layout currently lives inside `app/page.tsx`.
+**Primitive layer:** shadcn/ui components live in `components/ui/` (currently: `button.tsx`). Atoms wrap these primitives with domain-specific styling.
+
+**Barrel exports:** Every component folder has an `index.ts` for clean imports (e.g. `@/components/atoms/NavItem`).
 
 ---
 

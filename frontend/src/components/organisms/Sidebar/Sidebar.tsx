@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 
-import SidebarHeader from "@/components/molecules/SidebarHeader/SidebarHeader";
-import SidebarNav from "@/components/molecules/SidebarNav/SidebarNav";
+import SidebarHeader from "@/components/molecules/SidebarHeader";
+import SidebarNav from "@/components/molecules/SidebarNav";
 import { Button } from "@/components/ui/button";
 
 export default function Sidebar() {

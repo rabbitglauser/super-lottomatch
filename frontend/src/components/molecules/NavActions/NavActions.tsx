@@ -2,7 +2,7 @@
 
 import { Bell, ChevronDown, CircleUser } from "lucide-react";
 
-import IconButton from "@/components/atoms/IconButton/IconButton";
+import IconButton from "@/components/atoms/IconButton";
 import { Button } from "@/components/ui/button";
 
 export default function NavActions() {

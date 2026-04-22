@@ -19,7 +19,6 @@
 
   /* Text */
   --color-heading: #2A1717;
-  --color-muted-custom: #6B4D4A;
 
   /* Inputs */
   --color-input-bg: #FFF0EF;
@@ -88,7 +87,7 @@ body {
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: #6B4D4A;
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);

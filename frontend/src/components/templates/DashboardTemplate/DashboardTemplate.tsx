@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import TopNavbar from "@/components/organisms/TopNavbar/TopNavbar";
-import Sidebar from "@/components/organisms/Sidebar/Sidebar";
+import TopNavbar from "@/components/organisms/TopNavbar";
+import Sidebar from "@/components/organisms/Sidebar";
 
 interface DashboardTemplateProps {
   children: ReactNode;

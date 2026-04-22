@@ -4,11 +4,9 @@ import { Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import Button from "@/components/atoms/Button/Button";
-import FormField from "@/components/molecules/FormField/FormField";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { Button } from "@/components/ui/button";
+import FormField from "@/components/molecules/FormField";
+import { API_BASE_URL } from "@/lib/constants";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -48,7 +46,7 @@ export default function LoginForm() {
         <h1 className="text-5xl font-bold tracking-tight text-heading">
           Login
         </h1>
-        <p className="mt-3 text-2xl text-muted-custom">
+        <p className="mt-3 text-2xl text-muted-foreground">
           Geben Sie Ihre Zugangsdaten ein.
         </p>
       </div>
@@ -80,7 +78,11 @@ export default function LoginForm() {
           </p>
         ) : null}
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-20 w-full rounded-3xl bg-brand text-2xl font-bold text-white shadow-[0_14px_30px_rgba(179,1,26,0.28)] transition hover:bg-brand/90 focus:ring-4 focus:ring-brand/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        >
           {isSubmitting ? "Anmelden…" : "Anmelden"}
         </Button>
       </form>
@@ -95,7 +97,7 @@ export default function LoginForm() {
           Passwort vergessen?
         </a>
 
-        <p className="text-lg text-muted-custom">
+        <p className="text-lg text-muted-foreground">
           Probleme beim Login?{" "}
           <a
             href="#"

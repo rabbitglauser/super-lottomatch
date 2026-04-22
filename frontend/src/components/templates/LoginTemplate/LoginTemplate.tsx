@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import Footer from "@/components/organisms/Footer/Footer";
+import Footer from "@/components/organisms/Footer";
 
 interface LoginTemplateProps {
   hero: ReactNode;

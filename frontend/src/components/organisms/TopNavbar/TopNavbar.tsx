@@ -1,4 +1,4 @@
-import NavActions from "@/components/molecules/NavActions/NavActions";
+import NavActions from "@/components/molecules/NavActions";
 
 export default function TopNavbar() {
   return (

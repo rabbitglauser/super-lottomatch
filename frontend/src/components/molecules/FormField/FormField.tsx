@@ -3,8 +3,8 @@
 import type { ChangeEvent } from "react";
 import type { LucideIcon } from "lucide-react";
 
-import Input from "@/components/atoms/Input/Input";
-import Label from "@/components/atoms/Label/Label";
+import Input from "@/components/atoms/Input";
+import Label from "@/components/atoms/Label";
 
 interface FormFieldProps {
   id: string;

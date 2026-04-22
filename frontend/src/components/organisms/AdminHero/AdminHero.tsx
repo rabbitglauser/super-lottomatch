@@ -15,7 +15,7 @@ export default function AdminHero() {
         gewinnen.
       </h2>
 
-      <p className="mt-8 max-w-2xl text-2xl leading-relaxed text-muted-custom">
+      <p className="mt-8 max-w-2xl text-2xl leading-relaxed text-muted-foreground">
         Willkommen zurück im Admin Console. Verwalten Sie Ziehungen,
         Teilnehmer und Gewinne mit STV Präzision.
       </p>

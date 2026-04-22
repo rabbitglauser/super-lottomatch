@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-**Date:** 2026-06-04
+**Date:** 2026-04-22 (last updated)
 **Status:** In Development
 
 This document records the critical architectural decisions made during the development of SuperLottomatch. Every choice reflects an evaluation of trade-offs between developer velocity, user experience, and system reliability within the constraints of a 5-week school project (GIBZ M426).
@@ -15,7 +15,7 @@ This document records the critical architectural decisions made during the devel
 The application needs two frontends: a public guest registration app and a protected admin dashboard. Both must work cross-platform, be mobile-friendly, and serve an audience where the majority is aged 40+. The team has 5 weeks and 2 developers, so developer velocity is critical. The guest app must load fast on older smartphones.
 
 **Decision:**
-Use Next.js 14+ (App Router) with React, TypeScript, and Tailwind CSS. The guest app and admin dashboard are separate route groups within the same Next.js project.
+Use Next.js 16 (App Router) with React 19, TypeScript 5, and Tailwind CSS v4. The guest app and admin dashboard are separate route groups within the same Next.js project.
 
 **Alternatives Considered:**
 - **Plain React (Vite):** No SSR, slower initial load on older devices, requires manual routing setup.
@@ -66,7 +66,7 @@ Use Python 3.12+ with FastAPI, SQLAlchemy 2.0 as ORM, and Pydantic v2 for reques
 The application stores guest addresses, event data, attendance records, and raffle history. The data is clearly relational: guests attend events, draws reference guests and events. The dataset is small (hundreds of guests, not thousands). The team needed a database that is reliable, well-documented, and easy to set up.
 
 **Decision:**
-Use MySQL 8.0+ as the relational database, accessed via SQLAlchemy ORM. Schema migrations are managed with Alembic.
+Use MySQL 8.4 as the relational database, accessed via SQLAlchemy ORM. Schema migrations are managed with Alembic.
 
 **Alternatives Considered:**
 - **PostgreSQL:** Equally capable, but MySQL is more commonly taught at GIBZ and has broader free-tier hosting availability.
@@ -149,8 +149,9 @@ super-lottomatch/
 ├── docker-compose.yml # Local development environment
 ├── frontend/          # Next.js + React + TypeScript + Tailwind
 ├── backend/           # Python + FastAPI + SQLAlchemy
+├── db/init/           # MySQL init scripts
 ├── docs/              # Project documentation
-└──.claude/skills      # Claude API key
+└── .claude/           # Claude Code configuration
 ```
 
 **Consequences:**
@@ -159,3 +160,114 @@ super-lottomatch/
 - (+) Simpler onboarding for team members
 - (-) Larger repository over time
 - (-) CI installs both dependency sets even when only one side changed (can optimize with path filters later)
+
+---
+
+## ADR-007: Atomic Design for Frontend Component Architecture
+
+**Status:** Accepted
+
+**Context:**
+As the frontend grew beyond the login page, components accumulated inside feature folders (e.g. `components/Login/`) with no clear rules on what can import what. New components had no obvious home, and duplication started creeping in. The team needed a convention that scales with the codebase and makes PR reviews faster.
+
+**Decision:**
+Adopt Brad Frost's Atomic Design methodology adapted for Next.js App Router. Components are organised into five tiers under `frontend/src/components/`:
+
+```
+components/
+├── atoms/          # Button, Input, Label, IconButton, NavItem
+├── molecules/      # FormField, NavActions, SidebarHeader, SidebarNav
+├── organisms/      # LoginForm, AdminHero, Footer, Sidebar, TopNavbar
+└── templates/      # LoginTemplate, DashboardTemplate
+```
+
+Pages remain in `app/` as the fifth tier (Next.js convention). Dependencies flow strictly downward: atoms import nothing, molecules import atoms, organisms import both, templates import all three.
+
+Each component lives in its own folder (`atoms/NavItem/NavItem.tsx`) with a barrel `index.ts` for clean imports (`@/components/atoms/NavItem`).
+
+**Consequences:**
+- (+) Clear dependency rule eliminates "where does this go?" debates
+- (+) Shared vocabulary (atom/molecule/organism/template) speeds up PR reviews
+- (+) Folder-per-component leaves room for colocated tests and stories
+- (+) Barrel exports keep import paths clean
+- (-) More folders and files than a flat structure
+- (-) Requires discipline — misplaced components break the hierarchy
+
+See `docs/ATOMIC-DESIGN.md` for the full specification.
+
+---
+
+## ADR-008: shadcn/ui as Component Primitive Layer
+
+**Status:** Accepted
+
+**Context:**
+The project initially built all UI components from scratch (custom Button, Input, etc.). As the dashboard grew to include a navbar, sidebar, and action buttons, maintaining custom primitives with proper variants, accessibility, and focus management became time-consuming. The team needed a pre-built component system that integrates with Tailwind CSS v4 and does not add a runtime dependency.
+
+**Decision:**
+Adopt shadcn/ui as the primitive component layer. shadcn components are installed into `frontend/src/components/ui/` as source code (not an npm dependency), built on Base UI React and class-variance-authority (CVA) for variants.
+
+Atomic design components wrap shadcn primitives with domain-specific meaning:
+- `ui/button.tsx` (shadcn primitive) → used directly or wrapped by atoms like `IconButton`
+- Custom atoms (`Input`, `Label`) remain where shadcn does not yet cover them
+
+**Alternatives Considered:**
+- **Continue custom-only:** Full control but slow — every new variant needs manual implementation of focus rings, disabled states, aria attributes.
+- **Radix UI directly:** Lower-level than shadcn, requires more boilerplate for styling.
+- **Material UI / Chakra UI:** Runtime CSS-in-JS dependencies, heavier bundle, opinionated styling that conflicts with the existing Tailwind theme.
+
+**Consequences:**
+- (+) Pre-built variants (ghost, outline, destructive, link) with proper accessibility
+- (+) Source code ownership — components live in the repo and can be customised
+- (+) Zero runtime dependency — just Tailwind classes
+- (+) CVA provides type-safe variant props
+- (-) Adds `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css` as dependencies
+- (-) shadcn's CSS variable system required merging with the project's existing custom tokens
+
+---
+
+## ADR-009: Dashboard Layout with Sidebar Navigation and Top Navbar
+
+**Status:** Accepted
+
+**Context:**
+After login, users land on a dashboard that needs navigation to multiple sections: events, guests, check-in, prizes, data, and settings. The target users (club members, 40+) need a layout that is immediately recognisable and easy to navigate. A sidebar with labelled icons is the most familiar pattern for admin dashboards.
+
+**Decision:**
+The dashboard uses a two-part layout composed as a template (`DashboardTemplate`):
+
+1. **Top navbar** (`TopNavbar` organism) — spans full width, contains "STV Event Manager" branding on the left, and action buttons (Import/Export, notifications, profile) on the right.
+2. **Left sidebar** (`Sidebar` organism) — sits below the navbar, contains a user/org header, navigation links with lucide-react icons, and a "New Event" CTA button at the bottom.
+
+The layout is applied via a Next.js nested layout at `app/dashboard/layout.tsx`, so it wraps all `/dashboard/*` routes without affecting the login page.
+
+Navigation items are defined as a constant array (`NAV_ITEMS` in `lib/constants.ts`) and rendered by the `SidebarNav` molecule. Active state detection uses `usePathname()`.
+
+**Consequences:**
+- (+) Familiar admin dashboard pattern — no learning curve for users
+- (+) Nested layout means login page stays separate with its own layout
+- (+) Navigation config is data-driven — adding a new section is one line in `constants.ts`
+- (+) Active state highlighting gives clear orientation
+- (-) Fixed 256px sidebar width reduces content area on smaller screens (mobile responsive not yet implemented)
+
+---
+
+## ADR-010: Centralised Constants and Configuration
+
+**Status:** Accepted
+
+**Context:**
+API base URLs and navigation item definitions were scattered across individual components (`LoginForm`, `SidebarNav`). This made it easy to introduce inconsistencies and harder to find configuration values during debugging or deployment.
+
+**Decision:**
+Extract shared constants into `frontend/src/lib/constants.ts`:
+- `API_BASE_URL` — reads from `NEXT_PUBLIC_API_URL` env var with `http://localhost:8000` fallback
+- `NAV_ITEMS` — typed array of sidebar navigation entries (href, icon, label)
+
+Components import from this single source of truth.
+
+**Consequences:**
+- (+) Single place to update API URLs or navigation structure
+- (+) Type-safe — `NavItem` interface enforces shape
+- (+) Easier to find and audit configuration values
+- (-) One more import per consuming component (minimal overhead)

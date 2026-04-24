@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 interface GLSLHillsProps {
@@ -9,11 +9,15 @@ interface GLSLHillsProps {
   cameraZ?: number;
   planeSize?: number;
   speed?: number;
+  color?: string;
 }
 
 interface PlaneUniforms {
   time: {
     value: number;
+  };
+  color: {
+    value: unknown;
   };
 }
 
@@ -31,9 +35,10 @@ class Plane {
   mesh: DisposableMesh;
   time: number;
 
-  constructor(planeSize: number, speed: number) {
+  constructor(planeSize: number, speed: number, color: string) {
     this.uniforms = {
       time: { value: 0 },
+      color: { value: new THREE.Color(color) },
     };
     this.mesh = this.createMesh(planeSize);
     this.time = speed;
@@ -156,10 +161,10 @@ class Plane {
           precision highp float;
           #define GLSLIFY 1
           varying vec3 vPosition;
+          uniform vec3 color;
 
           void main(void) {
             float opacity = (96.0 - length(vPosition)) / 256.0 * 0.6;
-            vec3 color = vec3(0.6);
             gl_FragColor = vec4(color, opacity);
           }
         `,
@@ -179,9 +184,19 @@ const GLSLHills = ({
   cameraZ = 125,
   planeSize = 256,
   speed = 0.5,
+  color = "#999999",
 }: GLSLHillsProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const animationConfig = useMemo(
+    () => ({
+      cameraZ,
+      planeSize,
+      speed,
+      color,
+    }),
+    [cameraZ, color, planeSize, speed],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -199,7 +214,11 @@ const GLSLHills = ({
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
     const clock = new THREE.Clock();
-    const plane = new Plane(planeSize, speed);
+    const plane = new Plane(
+      animationConfig.planeSize,
+      animationConfig.speed,
+      animationConfig.color,
+    );
 
     let animationFrameId = 0;
     const resizeObserver =
@@ -231,7 +250,7 @@ const GLSLHills = ({
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
     renderer.domElement.style.display = "block";
-    camera.position.set(0, 16, cameraZ);
+    camera.position.set(0, 16, animationConfig.cameraZ);
     camera.lookAt(new THREE.Vector3(0, 28, 0));
     scene.add(plane.mesh);
     resize();
@@ -248,7 +267,7 @@ const GLSLHills = ({
       plane.mesh.material.dispose();
       renderer.dispose();
     };
-  }, [cameraZ, planeSize, speed]);
+  }, [animationConfig]);
 
   return (
     <div

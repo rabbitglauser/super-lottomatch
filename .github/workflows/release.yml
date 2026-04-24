@@ -1,0 +1,96 @@
+name: Release Bundle
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Build and publish release bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: Show tool versions
+        run: |
+          node --version
+          npm --version
+          python3 --version
+          python3 -m pip --version
+          gh --version
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint -- src
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Lint backend
+        working-directory: backend
+        run: python3 -m ruff check .
+
+      - name: Test backend
+        working-directory: backend
+        run: python3 -m pytest
+
+      - name: Prepare bundle metadata
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          RELEASE_TAG="main-${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "$GITHUB_ENV"
+
+      - name: Create release bundles
+        shell: bash
+        run: |
+          mkdir -p dist
+          (
+            cd frontend
+            zip -r "../dist/super-lottomatch-frontend-${SHORT_SHA}.zip" . \
+              -x "node_modules/*" ".next/cache/*"
+          )
+          (
+            cd backend
+            zip -r "../dist/super-lottomatch-backend-${SHORT_SHA}.zip" . \
+              -x "__pycache__/*" "tests/__pycache__/*" ".pytest_cache/*" "*.pyc"
+          )
+          zip -r "dist/super-lottomatch-release-${SHORT_SHA}.zip" \
+            frontend backend docs docker-compose.yml README.md LICENSE.md SECURITY.md vercel.json \
+            -x "frontend/node_modules/*" "frontend/.next/cache/*" \
+               "backend/__pycache__/*" "backend/tests/__pycache__/*" \
+               "backend/.pytest_cache/*" "*.pyc"
+
+      - name: Publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" dist/*.zip --clobber
+          else
+            gh release create "${RELEASE_TAG}" dist/*.zip \
+              --title "SuperLottoMatch release bundle ${SHORT_SHA}" \
+              --notes "Automated release bundle for main (${GITHUB_SHA})."
+          fi

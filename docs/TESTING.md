@@ -5,18 +5,21 @@
 
 ## Overview
 
-SuperLottomatch uses a layered testing approach covering unit tests, integration tests, and end-to-end validation. The target is **>75% line coverage** for both frontend and backend, enforced by CI.
+SuperLottomatch currently uses a pragmatic validation approach in CI:
+
+- **Frontend:** linting plus production build verification
+- **Backend:** linting plus pytest smoke tests
+
+Additional frontend tests and coverage gates can be added as the product grows.
 
 ---
 
-## Coverage Target
+## Current CI Validation
 
-| Component | Minimum Coverage | Tool |
-|-----------|-----------------|------|
-| Backend (FastAPI) | 75% | pytest-cov |
-| Frontend (Next.js) | 75% | Jest --coverage |
-
-The CI pipeline fails the build if coverage drops below the threshold.
+| Component | Current CI Checks | Tool |
+|-----------|-------------------|------|
+| Backend (FastAPI) | Ruff + pytest | `ruff`, `pytest` |
+| Frontend (Next.js) | ESLint + Next.js build | `eslint`, `next build` |
 
 ---
 
@@ -26,6 +29,7 @@ The CI pipeline fails the build if coverage drops below the threshold.
 
 | Tool | Purpose |
 |------|---------|
+| **ruff** | Linting and static checks |
 | **pytest** | Test runner and framework |
 | **pytest-cov** | Coverage reporting |
 | **httpx** | Async test client for FastAPI endpoints |
@@ -36,6 +40,7 @@ The CI pipeline fails the build if coverage drops below the threshold.
 # Run all backend tests
 cd backend
 pip install -r requirements.txt
+ruff check .
 pytest
 
 # Run with coverage report
@@ -70,9 +75,9 @@ The current backend test suite is a minimal FastAPI smoke-test setup for the exi
 
 ### Test Database
 
-- Tests use an **SQLite in-memory database** for fast execution
-- The test database is created and destroyed per test session
-- No external database dependency needed to run tests
+- The current smoke test does **not** require a live database connection
+- The SQLAlchemy engine is created from environment defaults, but the test only exercises the root endpoint
+- Broader database-backed tests can be added once dedicated test fixtures are introduced
 
 ### Example Test Structure
 
@@ -94,54 +99,36 @@ backend/tests/
 
 | Tool | Purpose |
 |------|---------|
-| **Jest** | Test runner and framework |
-| **React Testing Library** | Component rendering and interaction |
-| **@testing-library/user-event** | Simulating user interactions |
+| **ESLint** | Static analysis and code quality |
+| **Next.js build** | Compile-time validation of the app |
 
 ### How to Run
 
 ```bash
-# Run all frontend tests
+# Install dependencies
 cd frontend
 npm install
-npm test
-
-# Run with coverage report
-npm test -- --coverage
-
-# Run a specific test file
-npm test -- tests/Registration.test.tsx
-
-# Run in watch mode (during development)
-npm test -- --watch
+npm run lint -- src
+npm run build
 ```
 
-### What's Covered
+### Current Coverage
 
-| Area | Tests | Priority |
-|------|-------|----------|
-| Registration Form | Field validation, form submission, QR code display after registration | High |
-| Check-in Flow | QR scan trigger, manual name lookup, confirmation screen | High |
-| Admin Guest List | Table rendering, search and filter, inline editing | Medium |
-| Admin Raffle | Draw button, winner display, draw history, redraw | Medium |
-| Components | Buttons, inputs, modals render correctly with props | Medium |
-| Routing | Correct pages render at correct routes | Low |
+The current frontend workflow validates:
 
-### Example Test Structure
+- TypeScript and Next.js production compilation
+- ESLint rules
+- import resolution and route compilation
+- configuration issues that would break the production build
 
-```
-frontend/__tests__/
-├── components/
-│   ├── Button.test.tsx
-│   ├── QRCode.test.tsx
-│   └── GuestTable.test.tsx
-├── pages/
-│   ├── Registration.test.tsx
-│   ├── Checkin.test.tsx
-│   └── AdminRaffle.test.tsx
-└── utils/
-    └── validation.test.ts
-```
+Frontend component and interaction tests are **not implemented yet** in this repository.
+
+### Planned Future Frontend Test Areas
+
+- Registration and check-in flows
+- Guest management filters and imports
+- Dashboard widgets and page routing
+- Reusable UI components and form behavior
 
 ---
 
@@ -149,12 +136,8 @@ frontend/__tests__/
 
 Integration tests verify that the full API works end-to-end with a real database layer:
 
-- **FastAPI TestClient** with an in-memory SQLite database
-- Tests cover complete workflows:
-  1. Register a guest → receive QR code
-  2. Create an event → check in the guest → verify attendance
-  3. Draw a raffle winner → verify winner is from checked-in guests
-  4. Attempt duplicate check-in → verify rejection
+- The current repository only includes a lightweight backend smoke test
+- Full workflow integration tests are a planned extension, not yet implemented
 
 ---
 
@@ -162,13 +145,13 @@ Integration tests verify that the full API works end-to-end with a real database
 
 ```bash
 # Backend
-cd backend && pytest --cov=. --cov-report=term-missing
+cd backend && ruff check . && pytest
 
 # Frontend
-cd frontend && npm test -- --coverage
+cd frontend && npm run lint -- src && npm run build
 
 # Both (from project root)
-cd backend && pytest --cov=. && cd ../frontend && npm test -- --coverage
+cd backend && ruff check . && pytest && cd ../frontend && npm run lint -- src && npm run build
 ```
 
 ---
@@ -179,6 +162,6 @@ When adding a new feature, follow this checklist:
 
 - [ ] Write unit tests for new business logic
 - [ ] Write API tests for new endpoints (backend)
-- [ ] Write component tests for new UI elements (frontend)
-- [ ] Verify coverage has not dropped below 75%
+- [ ] Add frontend component tests once a frontend test runner is introduced
+- [ ] Keep lint/build/test checks green in CI
 - [ ] All tests pass locally before pushing

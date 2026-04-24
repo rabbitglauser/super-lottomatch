@@ -10,7 +10,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { GLSLHills } from "@/components/glsl-hills";
+import { GLSLHills } from "@/components/ui/GLSLHills";
 import { cn } from "@/lib/utils";
 
 import LandingHeader from "./LandingHeader";

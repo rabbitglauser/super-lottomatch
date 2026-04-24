@@ -17,6 +17,14 @@
   /* Brand */
   --color-brand: #B3011A;
 
+  /* Dashboard accent palette */
+  --color-page-dashboard: #F8EEEE;
+  --color-accent-red: #DF2634;
+  --color-accent-red-dark: #B80012;
+  --color-accent-red-soft: #FCE4E6;
+  --color-charcoal: #1F1D1D;
+  --color-muted-warm: #7A6562;
+
   /* Text */
   --color-heading: #2A1717;
 

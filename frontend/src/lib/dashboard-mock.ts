@@ -111,5 +111,11 @@ export const LIVE_UPDATE = {
 
 export const LOCATION = {
   label: "Veranstaltungsort",
-  address: ["Helvetiaplatz 4, 3005", "Ennetbürgen,", "Schweiz"],
+  locationLabel: "Bern, Schweiz",
+  summary: "Globale Vorschau mit Fokus auf den Veranstaltungsort.",
+  address: ["Helvetiaplatz 4", "3005 Bern", "Schweiz"],
+  coordinates: {
+    lat: 46.948,
+    lng: 7.4474,
+  },
 };

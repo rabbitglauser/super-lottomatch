@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   MoreVertical,
@@ -26,25 +27,40 @@ interface ActionButtonProps {
   icon: LucideIcon;
   variant: "primary" | "secondary";
   children: ReactNode;
+  href?: string;
 }
 
 function ActionButton({
   icon: Icon,
   variant,
   children,
+  href,
 }: ActionButtonProps) {
-  return (
-    <Button
-      type="button"
-      className={cn(
-        "h-[74px] w-full justify-start gap-3 rounded-[1.6rem] px-6 text-left text-base font-semibold transition sm:w-[200px]",
-        variant === "primary"
-          ? "bg-gradient-to-r from-[#f03a49] to-[#b90f1d] text-white shadow-[0_20px_40px_rgba(220,31,45,0.24)] hover:opacity-95"
-          : "bg-[#f9e9ea] text-accent-red hover:bg-[#f4dcde]",
-      )}
-    >
+  const className = cn(
+    "inline-flex h-[74px] w-full items-center justify-start gap-3 rounded-[1.6rem] px-6 text-left text-base font-semibold transition sm:w-[200px]",
+    variant === "primary"
+      ? "bg-gradient-to-r from-[#f03a49] to-[#b90f1d] text-white shadow-[0_20px_40px_rgba(220,31,45,0.24)] hover:opacity-95"
+      : "bg-[#f9e9ea] text-accent-red hover:bg-[#f4dcde]",
+  );
+
+  const content = (
+    <>
       <Icon className="size-5 shrink-0" />
       <span className="leading-[1.15]">{children}</span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <Button type="button" className={className}>
+      {content}
     </Button>
   );
 }
@@ -196,7 +212,11 @@ export default function GuestManagementPage() {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row xl:shrink-0">
-            <ActionButton icon={Upload} variant="secondary">
+            <ActionButton
+              icon={Upload}
+              variant="secondary"
+              href="/dashboard/guests/importieren"
+            >
               Importieren
             </ActionButton>
 

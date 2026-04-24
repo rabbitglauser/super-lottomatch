@@ -7,12 +7,12 @@ import LocationCard from "@/components/molecules/LocationCard";
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-full bg-page-dashboard">
-      <div className="mx-auto max-w-[1500px] px-6 py-10 lg:px-10 lg:py-12">
+    <div className="min-h-screen w-full bg-page-dashboard">
+      <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
         <DashboardHeader />
         <DashboardStats className="mt-10" />
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] xl:gap-10">
           <div className="flex flex-col gap-8">
             <QuickActions />
             <LiveUpdateBanner />

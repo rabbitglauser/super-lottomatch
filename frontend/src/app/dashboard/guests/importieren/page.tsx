@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import GuestImportPage from "@/components/organisms/GuestImportPage";
+import DesktopGuestImportPage from "@/components/organisms/DesktopGuestImportPage";
 
 export const metadata: Metadata = {
   title: "Gäste importieren | STV Event Manager",
 };
 
 export default function GuestImportRoutePage() {
-  return <GuestImportPage />;
+  return <DesktopGuestImportPage />;
 }

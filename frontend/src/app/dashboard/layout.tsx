@@ -1,9 +1,9 @@
-import DashboardTemplate from "@/components/templates/DashboardTemplate";
+import DesktopDashboardTemplate from "@/components/templates/DesktopDashboardTemplate";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardTemplate>{children}</DashboardTemplate>;
+  return <DesktopDashboardTemplate>{children}</DesktopDashboardTemplate>;
 }

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import EventCreatePage from "@/components/organisms/EventCreatePage";
+import DesktopEventCreatePage from "@/components/organisms/DesktopEventCreatePage";
 
 export const metadata: Metadata = {
   title: "Event erstellen | STV Event Manager",
 };
 
 export default function EventsPage() {
-  return <EventCreatePage />;
+  return <DesktopEventCreatePage />;
 }

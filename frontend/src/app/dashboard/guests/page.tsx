@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+import DesktopGuestManagementPage from "@/components/organisms/DesktopGuestManagementPage";
+
+export const metadata: Metadata = {
+  title: "Gästeverwaltung | STV Event Manager",
+};
+
 export default function GuestsPage() {
-  return <div className="flex-1" />;
+  return <DesktopGuestManagementPage />;
 }

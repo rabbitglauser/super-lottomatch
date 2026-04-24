@@ -1,7 +1,5 @@
-import AdminHero from "@/components/organisms/AdminHero";
-import LoginForm from "@/components/organisms/LoginForm";
-import LoginTemplate from "@/components/templates/LoginTemplate";
+import DesktopLandingPage from "@/components/organisms/DesktopLandingPage";
 
 export default function HomePage() {
-  return <LoginTemplate hero={<AdminHero />} form={<LoginForm />} />;
+  return <DesktopLandingPage />;
 }

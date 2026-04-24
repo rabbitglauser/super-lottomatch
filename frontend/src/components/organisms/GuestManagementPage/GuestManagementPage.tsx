@@ -1,12 +1,17 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
+  ChevronDown,
   MoreVertical,
   Search,
   SlidersHorizontal,
   Upload,
   UserPlus,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -16,12 +21,130 @@ import { cn } from "@/lib/utils";
 const desktopGridClass =
   "lg:grid-cols-[minmax(0,2.45fr)_minmax(120px,0.95fr)_minmax(110px,0.8fr)_minmax(140px,1fr)_110px_40px]";
 
+interface GuestFilters {
+  location: string;
+  lastParticipation: string;
+  marketingConsent: string;
+  status: string;
+}
+
+const defaultGuestFilters: GuestFilters = {
+  location: "Alle Standorte",
+  lastParticipation: "Zeitraum wählen",
+  marketingConsent: "Alle Status",
+  status: "Aktiv",
+};
+
+const locationOptions = [
+  "Alle Standorte",
+  "Zug",
+  "Luzern",
+  "Zürich",
+  "Bern",
+] as const;
+
+const lastParticipationOptions = [
+  "Zeitraum wählen",
+  "Letzte 30 Tage",
+  "Letzte 3 Monate",
+  "Dieses Jahr",
+] as const;
+
+const marketingConsentOptions = [
+  "Alle Status",
+  "Eingewilligt",
+  "Nicht eingewilligt",
+] as const;
+
+const statusOptions = ["Aktiv", "Inaktiv", "Alle"] as const;
+
 const avatarToneClasses = {
   rose: "bg-[#f7d8dc] text-[#b53948]",
   amber: "bg-[#f4e1c5] text-[#9d6226]",
   blue: "bg-[#d7e6ef] text-[#365f82]",
   peach: "bg-[#f5d5cf] text-[#ab5147]",
 } as const;
+
+interface FilterFieldProps {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}
+
+function FilterField({ label, value, options, onChange }: FilterFieldProps) {
+  return (
+    <div className="min-w-0">
+      <label className="mb-3 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/85">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-12 w-full appearance-none rounded-2xl border border-transparent bg-white px-4 pr-12 text-sm font-medium text-charcoal outline-none transition focus:border-accent-red/15 focus:ring-4 focus:ring-accent-red/10"
+        >
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
+      </div>
+    </div>
+  );
+}
+
+function FilterPanel({
+  filters,
+  onChange,
+  onReset,
+}: {
+  filters: GuestFilters;
+  onChange: <K extends keyof GuestFilters>(key: K, value: GuestFilters[K]) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="mt-5 rounded-[1.9rem] bg-[#fdecec] px-6 py-7 sm:px-8 sm:py-8">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <FilterField
+          label="Ort/Stadt"
+          value={filters.location}
+          options={locationOptions}
+          onChange={(value) => onChange("location", value)}
+        />
+        <FilterField
+          label="Letzte Teilnahme"
+          value={filters.lastParticipation}
+          options={lastParticipationOptions}
+          onChange={(value) => onChange("lastParticipation", value)}
+        />
+        <FilterField
+          label="Marketing-Einwilligung"
+          value={filters.marketingConsent}
+          options={marketingConsentOptions}
+          onChange={(value) => onChange("marketingConsent", value)}
+        />
+        <FilterField
+          label="Status"
+          value={filters.status}
+          options={statusOptions}
+          onChange={(value) => onChange("status", value)}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={onReset}
+        className="mt-7 inline-flex items-center gap-2 rounded-full px-1 py-1 text-sm font-semibold text-accent-red transition hover:text-accent-red-dark"
+      >
+        <X className="size-4" />
+        <span>Filter zurücksetzen</span>
+      </button>
+    </div>
+  );
+}
 
 interface ActionButtonProps {
   icon: LucideIcon;
@@ -197,6 +320,26 @@ function GuestRow({ guest }: { guest: GuestRecord }) {
 }
 
 export default function GuestManagementPage() {
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<GuestFilters>({
+    ...defaultGuestFilters,
+  });
+
+  const handleFilterChange = <K extends keyof GuestFilters>(
+    key: K,
+    value: GuestFilters[K],
+  ) => {
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      [key]: value,
+    }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ ...defaultGuestFilters });
+    setShowFilters(false);
+  };
+
   return (
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
@@ -241,12 +384,27 @@ export default function GuestManagementPage() {
             <Button
               type="button"
               variant="secondary"
-              className="h-[68px] rounded-[1.4rem] border border-black/[0.04] bg-white px-6 text-base font-semibold text-charcoal shadow-[0_10px_24px_rgba(42,23,23,0.05)] hover:bg-white lg:w-[110px]"
+              onClick={() => setShowFilters((currentState) => !currentState)}
+              aria-expanded={showFilters}
+              className={cn(
+                "h-[68px] rounded-[1.4rem] border px-6 text-base font-semibold shadow-[0_10px_24px_rgba(42,23,23,0.05)] lg:w-[110px]",
+                showFilters
+                  ? "border-accent-red/10 bg-[#f9e9ea] text-accent-red hover:bg-[#f4dcde]"
+                  : "border-black/[0.04] bg-white text-charcoal hover:bg-white",
+              )}
             >
               <SlidersHorizontal className="size-5 text-accent-red" />
               Filter
             </Button>
           </div>
+
+          {showFilters ? (
+            <FilterPanel
+              filters={filters}
+              onChange={handleFilterChange}
+              onReset={handleResetFilters}
+            />
+          ) : null}
         </section>
 
         <section className="mt-8">

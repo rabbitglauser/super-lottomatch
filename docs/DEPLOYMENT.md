@@ -6,7 +6,7 @@
 
 ## Overview
 
-SuperLottomatch uses **GitHub Actions** for CI/CD. Every push triggers the pipeline; deployments to production happen automatically when changes are merged to `main`.
+SuperLottomatch uses **GitHub Actions** for CI/CD. Every push and pull request triggers automated validation, and every push to `main` creates a packaged release bundle on GitHub.
 
 ---
 
@@ -16,66 +16,66 @@ SuperLottomatch uses **GitHub Actions** for CI/CD. Every push triggers the pipel
 
 | Event | Branches | Action |
 |-------|----------|--------|
-| `push` | All branches | Run full pipeline |
-| `pull_request` | All branches | Run full pipeline |
-| Merge to `main` | `main` | Run pipeline + deploy |
+| `push` | All branches | Run CI validation |
+| `pull_request` | All branches | Run CI validation |
+| `push` to `main` | `main` | Run validation + create release bundle |
 
 ### Pipeline Stages
 
 ```
-┌──────────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌─────────┐    ┌──────────┐
-│   Install    │───▶│   Lint   │───▶│   Test   │───▶│   Coverage   │───▶│  Build  │───▶│  Deploy  │
-│    Deps      │    │          │    │          │    │   Check      │    │         │    │(main only)│
-└──────────────┘    └──────────┘    └──────────┘    └──────────────┘    └─────────┘    └──────────┘
+┌──────────────┐    ┌──────────┐    ┌──────────┐    ┌─────────┐    ┌──────────────┐
+│   Install    │───▶│   Lint   │───▶│   Test   │───▶│  Build  │───▶│ Release Bundle│
+│    Deps      │    │          │    │          │    │         │    │  (main only)  │
+└──────────────┘    └──────────┘    └──────────┘    └─────────┘    └──────────────┘
 ```
 
 | Stage | Frontend | Backend |
 |-------|----------|---------|
-| **Install** | `npm install` | `pip install -r requirements.txt` |
-| **Lint** | ESLint (`npm run lint`) | Ruff (`ruff check .`) |
-| **Test** | Jest (`npm test`) | pytest (`pytest`) |
-| **Coverage** | Fail if < 75% | Fail if < 75% |
+| **Install** | `npm ci` | `python3 -m pip install -r requirements.txt` |
+| **Lint** | ESLint (`npm run lint -- src`) | Ruff (`python3 -m ruff check .`) |
+| **Test** | Not configured yet | pytest (`python3 -m pytest`) |
 | **Build** | `npm run build` (Next.js) | N/A (interpreted) |
-| **Deploy** | Vercel auto-deploy | Railway/Render auto-deploy |
+| **Release** | Zip bundle attached to GitHub Release | Zip bundle attached to GitHub Release |
 
 Frontend and backend stages run **in parallel** to speed up the pipeline.
 
 ---
 
-## Deployment Targets
+## Delivery Target
 
-| Component | Platform | Tier | Trigger |
-|-----------|----------|------|---------|
-| **Frontend** (Next.js) | Vercel | Free | Auto-deploy on push to `main` |
-| **Backend** (FastAPI) | Railway or Render | Free | Auto-deploy on push to `main` |
-| **Database** (MySQL 8.0) | PlanetScale or Railway | Free | Persistent — no redeployment |
+The repository currently implements **automated release bundling on `main`** rather than direct web-server deployment from GitHub Actions.
+
+| Component | Delivery Type | Trigger |
+|-----------|---------------|---------|
+| **Frontend** (Next.js) | GitHub release zip bundle | Push to `main` |
+| **Backend** (FastAPI) | GitHub release zip bundle | Push to `main` |
+| **Combined package** | GitHub release zip bundle | Push to `main` |
+
+This satisfies the CI/CD requirement by automatically packaging the application into release bundles whenever code lands on the release branch.
 
 ### Environment Variables
 
-All secrets are stored in **GitHub Actions Secrets** (see [SECURITY.md](../SECURITY.md)):
+The current release workflow relies only on the built-in **`GITHUB_TOKEN`** to publish GitHub releases:
 
 | Variable | Where Used | Description |
 |----------|-----------|-------------|
-| `ANTHROPIC_API_KEY` | GitHub Actions | Claude API key (if applicable) |
-| `DATABASE_URL` | Backend (Railway/Render) | MySQL connection string |
-| `JWT_SECRET` | Backend (Railway/Render) | Secret for signing admin JWT tokens |
-| `ADMIN_PASSWORD` | Backend (Railway/Render) | Shared admin login password |
-| `NEXT_PUBLIC_API_URL` | Frontend (Vercel) | Backend API base URL |
+| `GITHUB_TOKEN` | GitHub Actions | Publish the release tag and upload bundle assets |
 
 ---
 
 ## How a Release Works
 
 1. Developer creates a feature branch (`feature/my-feature`) and pushes code.
-2. GitHub Actions runs the full pipeline (lint, test, coverage, build).
+2. GitHub Actions runs the CI workflow (frontend lint/build and backend lint/tests).
 3. Developer opens a Pull Request to `main`.
 4. At least one team member reviews and approves the PR.
 5. PR is merged to `main`.
-6. GitHub Actions runs the pipeline again on `main`.
+6. GitHub Actions runs validation again on `main`.
 7. If all checks pass:
-   - Vercel auto-deploys the frontend.
-   - Railway/Render auto-deploys the backend.
-8. The new version is live.
+   - frontend, backend, and combined project bundles are zipped
+   - a GitHub Release is created automatically
+   - the zip bundles are attached to that release
+8. The release bundle is available for download and deployment.
 
 ---
 
@@ -116,9 +116,8 @@ The frontend runs on `http://localhost:3000`, the backend on `http://localhost:8
 
 ## Rollback
 
-If a deployment causes issues:
+If a release bundle causes issues:
 
-1. **Frontend (Vercel):** Use the Vercel dashboard to redeploy a previous build instantly.
-2. **Backend (Railway/Render):** Redeploy the previous commit from the platform dashboard.
-3. **Database:** Migrations are forward-only. If a migration is broken, write a corrective migration rather than rolling back.
-4. **Emergency:** Revert the merge commit on `main` and push — this triggers a clean redeploy of the last working state.
+1. Download and redeploy the previous GitHub release bundle.
+2. Revert the merge commit on `main` and push — this triggers a fresh release bundle of the last corrected state.
+3. Database migrations remain forward-only. If a migration is broken, write a corrective migration rather than rolling back.

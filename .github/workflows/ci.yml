@@ -3,20 +3,65 @@ name: CI
 on:
   push:
     branches:
-      - '**'
+      - "**"
   pull_request:
     branches:
-      - '**'
+      - "**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  frontend:
+    name: Frontend lint and build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
-      - name: Validate structure
+      - name: Show tool versions
         run: |
-          echo "Repository checked out successfully"
-          ls -la
+          node --version
+          npm --version
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint -- src
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  backend:
+    name: Backend lint and tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: Show tool versions
+        run: |
+          python3 --version
+          python3 -m pip --version
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Lint backend
+        working-directory: backend
+        run: python3 -m ruff check .
+
+      - name: Test backend
+        working-directory: backend
+        run: python3 -m pytest

@@ -3,6 +3,7 @@ uvicorn[standard]
 sqlalchemy
 pymysql
 cryptography
+ruff
 pytest
 pytest-asyncio
 pytest-cov

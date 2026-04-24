@@ -1,6 +1,6 @@
 <h1 align="center">
   <img
-    src="https://github.com/user-attachments/assets/d62fb261-f036-4ef4-81a6-b4af5cf7d1e9"
+    src="./frontend/public/logo.png"
     alt="SuperLottomatch"
     width="200"
   />

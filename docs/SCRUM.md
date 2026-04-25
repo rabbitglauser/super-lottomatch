@@ -1,6 +1,6 @@
 # Scrum-Dokumentation — SuperLottomatch
 
-**Date:** 2026-06-04
+**Date:** 2026-04-25
 **Status:** Ratified
 
 **Modul:** M426 (GIBZ)  
@@ -35,6 +35,9 @@ Das Team organisiert sich selbst nach folgenden Prinzipien:
 
 ### 2.1 Sprint Planning
 
+**Beschreibung:**
+Das Sprint Planning ist das Start-Meeting eines neuen Sprints. In diesem Termin entscheidet das Scrum-Team gemeinsam, welche Einträge aus dem Product Backlog im kommenden Sprint umgesetzt werden und welches konkrete Sprint-Ziel erreicht werden soll. Der Fokus liegt darauf, realistische, verständliche und überprüfbare Arbeit für den Sprint festzulegen.
+
 | Aspekt | Details                                      |
 |--------|----------------------------------------------|
 | **Zeitpunkt** | Jeweils am ersten Tag des Sprints (Dienstag) |
@@ -67,6 +70,9 @@ Der Scrum Master notiert allfällige Impediments und kümmert sich um deren Bese
 
 ### 2.3 Sprint Review
 
+**Beschreibung:**
+Das Sprint Review dient dazu, das fertige Inkrement zu präsentieren und mit dem Product Owner sowie möglichen Stakeholdern zu überprüfen. Dabei wird nicht nur gezeigt, was umgesetzt wurde, sondern auch bewertet, ob die Arbeit dem erwarteten Nutzen entspricht. Feedback aus dem Review fliesst direkt zurück ins Product Backlog.
+
 | Aspekt | Details |
 |--------|---------|
 | **Zeitpunkt** | Am letzten Tag des Sprints (Freitag) |
@@ -81,6 +87,9 @@ Der Scrum Master notiert allfällige Impediments und kümmert sich um deren Bese
 4. Der Product Owner aktualisiert den Product Backlog auf Basis des Feedbacks.
 
 ### 2.4 Sprint Retrospektive
+
+**Beschreibung:**
+Die Sprint Retrospektive ist das interne Verbesserungs-Meeting des Teams nach Abschluss eines Sprints. Im Gegensatz zum Sprint Review geht es hier nicht um das Produkt, sondern um die Zusammenarbeit, den Prozess und die Arbeitsweise. Ziel ist es, konkrete Massnahmen abzuleiten, mit denen der nächste Sprint effizienter oder reibungsloser durchgeführt werden kann.
 
 | Aspekt | Details |
 |--------|---------|
@@ -107,6 +116,9 @@ Der Scrum Master notiert allfällige Impediments und kümmert sich um deren Bese
 
 ### 3.1 Product Backlog
 
+**Beschreibung:**
+Das Product Backlog ist die vollständige, priorisierte Liste aller bekannten Anforderungen, Ideen, Verbesserungen und Fehlerbehebungen für das Produkt. Es wird laufend gepflegt und verändert sich mit neuen Erkenntnissen, Feedback oder geänderten Prioritäten. Das Product Backlog ist damit die zentrale Quelle für zukünftige Arbeit am Produkt.
+
 - **Verantwortlich:** Product Owner (Sammy)
 - **Inhalt:** Alle Anforderungen an das Produkt in Form von User Stories, priorisiert nach Geschäftswert.
 - **Priorisierung:** Der Product Owner ordnet die Einträge nach Wichtigkeit (MoSCoW-Methode: Must, Should, Could, Won't).
@@ -114,12 +126,18 @@ Der Scrum Master notiert allfällige Impediments und kümmert sich um deren Bese
 
 ### 3.2 Sprint Backlog
 
+**Beschreibung:**
+Das Sprint Backlog ist die Auswahl der Product-Backlog-Einträge, die das Team in einem bestimmten Sprint tatsächlich umsetzen will. Es ist also kleiner und konkreter als das Product Backlog. Zusätzlich enthält es die Aufgaben, mit denen diese Einträge umgesetzt werden. Während des Sprints wird das Sprint Backlog aktiv angepasst, wenn das Team neue Erkenntnisse gewinnt oder Arbeit präziser aufteilen muss.
+
 - **Verantwortlich:** Entwicklungsteam (Benji, Oddy)
 - **Inhalt:** Die vom Team ausgewählten Product-Backlog-Einträge für den aktuellen Sprint, aufgeteilt in konkrete Aufgaben (Tasks).
 - **Auswahl:** Im Sprint Planning wählt das Team basierend auf der Kapazität die Einträge aus, die es sich für den Sprint vornimmt.
 - **Anpassung:** Das Sprint Backlog wird während des Sprints vom Team aktualisiert; neue Erkenntnisse fliessen in die Aufgabenplanung ein.
 
 ### 3.3 Scrum Board
+
+**Beschreibung:**
+Das Scrum Board visualisiert den aktuellen Arbeitsstand des Teams innerhalb des Sprints. Es zeigt, welche Aufgaben noch offen sind, woran gerade gearbeitet wird, was sich im Review befindet und was bereits abgeschlossen ist. Dadurch wird der Fortschritt für das gesamte Team transparent und Hindernisse oder Engpässe werden schneller sichtbar.
 
 Das Team verwendet ein Scrum Board (GitHub Projects) mit folgenden Spalten:
 
@@ -131,6 +149,9 @@ Das Team verwendet ein Scrum Board (GitHub Projects) mit folgenden Spalten:
 - Das Board wird täglich im Daily Scrum aktualisiert.
 
 ### 3.4 User Stories
+
+**Beschreibung:**
+User Stories beschreiben Anforderungen aus Sicht eines Nutzers oder einer Rolle. Sie helfen dem Team, technische Arbeit nicht nur als Aufgabe, sondern als konkreten Nutzen für den Anwender zu verstehen. Jede User Story soll klein genug sein, um geplant und umgesetzt werden zu können, und klar genug, damit ihre Erfüllung überprüfbar ist.
 
 User Stories folgen dem Format:
 
@@ -145,6 +166,9 @@ Jede User Story enthält:
 - **Priorität:** Vom Product Owner festgelegt.
 
 ### 3.5 Inkrement
+
+**Beschreibung:**
+Das Inkrement ist das Ergebnis aller im Sprint fertiggestellten Arbeiten, die die Definition of Done erfüllen. Es muss in einem nutzbaren und demonstrierbaren Zustand sein. Das Inkrement zeigt, welchen echten Fortschritt das Team im Sprint erreicht hat, und bildet die Grundlage für das Sprint Review.
 
 Das Inkrement ist die Summe aller im Sprint abgeschlossenen Product-Backlog-Einträge. Es muss die **Definition of Done (DoD)** erfüllen:
 

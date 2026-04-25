@@ -1,3 +1,4 @@
+import AnimatedCounter from "@/components/atoms/AnimatedCounter";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import type { DashboardStat } from "@/lib/dashboard-mock";
 
@@ -14,9 +15,10 @@ export default function DesktopStatCard({ stat }: StatCardProps) {
 
       {stat.variant === "delta" && (
         <div className="mt-4 flex items-baseline gap-3">
-          <span className="text-5xl font-semibold text-accent-red tabular-nums">
-            {stat.value}
-          </span>
+          <AnimatedCounter
+            value={Number(stat.value)}
+            className="text-5xl font-semibold text-accent-red tabular-nums"
+          />
           <span className="text-sm font-semibold text-accent-red">
             {stat.delta}
           </span>
@@ -25,9 +27,10 @@ export default function DesktopStatCard({ stat }: StatCardProps) {
 
       {stat.variant === "progress" && (
         <div className="mt-4">
-          <span className="text-5xl font-semibold text-charcoal tabular-nums">
-            {stat.value}
-          </span>
+          <AnimatedCounter
+            value={Number(stat.value)}
+            className="text-5xl font-semibold text-charcoal tabular-nums"
+          />
           <ProgressBar value={stat.progress} className="mt-4" />
         </div>
       )}

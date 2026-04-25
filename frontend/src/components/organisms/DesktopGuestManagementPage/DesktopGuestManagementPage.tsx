@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 
+import PageReveal from "@/components/atoms/PageReveal";
 import { Button } from "@/components/ui/button";
 import { GUESTS, type GuestRecord } from "@/lib/guest-management-mock";
 import { cn } from "@/lib/utils";
@@ -344,87 +345,102 @@ export default function DesktopGuestManagementPage() {
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
         <header className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-charcoal sm:text-[3.3rem]">
-              Gästeverwaltung
-            </h1>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
-              Verwalten Sie Ihre Teilnehmerliste, Importieren Sie Daten und
-              behalten Sie den Überblick über die Event-Präsenz.
-            </p>
-          </div>
+          <PageReveal delay={0} variant="up" className="max-w-4xl">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-[-0.04em] text-charcoal sm:text-[3.3rem]">
+                Gästeverwaltung
+              </h1>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
+                Verwalten Sie Ihre Teilnehmerliste, Importieren Sie Daten und
+                behalten Sie den Überblick über die Event-Präsenz.
+              </p>
+            </div>
+          </PageReveal>
 
-          <div className="flex flex-col gap-4 sm:flex-row xl:shrink-0">
-            <ActionButton
-              icon={Upload}
-              variant="secondary"
-              href="/dashboard/guests/importieren"
-            >
-              Importieren
-            </ActionButton>
+          <PageReveal delay={120} variant="right" className="xl:shrink-0">
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <ActionButton
+                icon={Upload}
+                variant="secondary"
+                href="/dashboard/guests/importieren"
+              >
+                Importieren
+              </ActionButton>
 
-            <ActionButton icon={UserPlus} variant="primary">
-              <span className="block">Manueller</span>
-              <span className="block">Gast</span>
-            </ActionButton>
-          </div>
+              <ActionButton icon={UserPlus} variant="primary">
+                <span className="block">Manueller</span>
+                <span className="block">Gast</span>
+              </ActionButton>
+            </div>
+          </PageReveal>
         </header>
 
-        <section className="mt-10 rounded-[2rem] bg-white/70 p-4 shadow-[0_18px_40px_rgba(42,23,23,0.05)] sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
-              <input
-                type="search"
-                placeholder="Gäste nach Name, Code oder Wohnort suchen..."
-                className="h-[68px] w-full rounded-[1.5rem] border border-black/[0.04] bg-white pl-14 pr-5 text-[0.97rem] text-charcoal shadow-[0_10px_24px_rgba(42,23,23,0.05)] outline-none transition placeholder:text-input-text focus:border-accent-red/15 focus:ring-4 focus:ring-accent-red/10"
-              />
+        <PageReveal delay={220} variant="up">
+          <section className="mt-10 rounded-[2rem] bg-white/70 p-4 shadow-[0_18px_40px_rgba(42,23,23,0.05)] sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
+                <input
+                  type="search"
+                  placeholder="Gäste nach Name, Code oder Wohnort suchen..."
+                  className="h-[68px] w-full rounded-[1.5rem] border border-black/[0.04] bg-white pl-14 pr-5 text-[0.97rem] text-charcoal shadow-[0_10px_24px_rgba(42,23,23,0.05)] outline-none transition placeholder:text-input-text focus:border-accent-red/15 focus:ring-4 focus:ring-accent-red/10"
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowFilters((currentState) => !currentState)}
+                aria-expanded={showFilters}
+                className={cn(
+                  "h-[68px] rounded-[1.4rem] border px-6 text-base font-semibold shadow-[0_10px_24px_rgba(42,23,23,0.05)] lg:w-[110px]",
+                  showFilters
+                    ? "border-accent-red/10 bg-[#f9e9ea] text-accent-red hover:bg-[#f4dcde]"
+                    : "border-black/[0.04] bg-white text-charcoal hover:bg-white",
+                )}
+              >
+                <SlidersHorizontal className="size-5 text-accent-red" />
+                Filter
+              </Button>
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowFilters((currentState) => !currentState)}
-              aria-expanded={showFilters}
-              className={cn(
-                "h-[68px] rounded-[1.4rem] border px-6 text-base font-semibold shadow-[0_10px_24px_rgba(42,23,23,0.05)] lg:w-[110px]",
-                showFilters
-                  ? "border-accent-red/10 bg-[#f9e9ea] text-accent-red hover:bg-[#f4dcde]"
-                  : "border-black/[0.04] bg-white text-charcoal hover:bg-white",
-              )}
-            >
-              <SlidersHorizontal className="size-5 text-accent-red" />
-              Filter
-            </Button>
-          </div>
-
-          {showFilters ? (
-            <FilterPanel
-              filters={filters}
-              onChange={handleFilterChange}
-              onReset={handleResetFilters}
-            />
-          ) : null}
-        </section>
+            {showFilters ? (
+              <FilterPanel
+                filters={filters}
+                onChange={handleFilterChange}
+                onReset={handleResetFilters}
+              />
+            ) : null}
+          </section>
+        </PageReveal>
 
         <section className="mt-8">
-          <div
-            className={cn(
-              "hidden px-8 pb-3 text-[0.66rem] font-semibold uppercase tracking-[0.28em] text-muted-warm/85 lg:grid",
-              desktopGridClass,
-            )}
-          >
-            <span>Name</span>
-            <span>Gast-Code</span>
-            <span>Wohnort</span>
-            <span>Letzte Teilnahme</span>
-            <span>Marketing</span>
-            <span />
-          </div>
+          <PageReveal delay={320} variant="up">
+            <div
+              className={cn(
+                "hidden px-8 pb-3 text-[0.66rem] font-semibold uppercase tracking-[0.28em] text-muted-warm/85 lg:grid",
+                desktopGridClass,
+              )}
+            >
+              <span>Name</span>
+              <span>Gast-Code</span>
+              <span>Wohnort</span>
+              <span>Letzte Teilnahme</span>
+              <span>Marketing</span>
+              <span />
+            </div>
+          </PageReveal>
 
           <div className="space-y-4">
-            {GUESTS.map((guest) => (
-              <GuestRow key={guest.id} guest={guest} />
+            {GUESTS.map((guest, index) => (
+              <PageReveal
+                key={guest.id}
+                delay={380 + index * 60}
+                variant="up"
+                className="w-full"
+              >
+                <GuestRow guest={guest} />
+              </PageReveal>
             ))}
           </div>
         </section>

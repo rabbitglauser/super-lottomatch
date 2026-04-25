@@ -163,3 +163,64 @@ body {
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  @keyframes dashboard-reveal-enter {
+    from {
+      opacity: 0;
+      transform: translate3d(
+          var(--reveal-from-x, 0),
+          var(--reveal-from-y, 18px),
+          0
+        )
+        scale(var(--reveal-from-scale, 0.985));
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .dashboard-reveal {
+    opacity: 0;
+    will-change: opacity, transform;
+    animation-name: dashboard-reveal-enter;
+    animation-duration: var(--reveal-duration, 460ms);
+    animation-delay: var(--reveal-delay, 0ms);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-fill-mode: forwards;
+  }
+
+  .dashboard-reveal-up {
+    --reveal-from-y: 22px;
+    --reveal-from-scale: 0.985;
+  }
+
+  .dashboard-reveal-left {
+    --reveal-from-x: -18px;
+    --reveal-from-y: 0px;
+    --reveal-from-scale: 0.995;
+  }
+
+  .dashboard-reveal-right {
+    --reveal-from-x: 18px;
+    --reveal-from-y: 0px;
+    --reveal-from-scale: 0.995;
+  }
+
+  .dashboard-reveal-scale {
+    --reveal-from-y: 0px;
+    --reveal-from-scale: 0.96;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}

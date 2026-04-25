@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 
+import PageReveal from "@/components/atoms/PageReveal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -173,153 +174,167 @@ export default function DesktopEventCreatePage() {
   return (
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
-        <header>
-          <h1 className="text-4xl font-semibold tracking-[-0.04em] text-charcoal sm:text-[3.3rem]">
-            Event erstellen
-          </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
-            Konfigurieren Sie Ihr neues Lottomatch Event mit präzisen Details.
-          </p>
-        </header>
+        <PageReveal delay={0} variant="up">
+          <header>
+            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-charcoal sm:text-[3.3rem]">
+              Event erstellen
+            </h1>
+            <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
+              Konfigurieren Sie Ihr neues Lottomatch Event mit präzisen Details.
+            </p>
+          </header>
+        </PageReveal>
 
         <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,2.18fr)_minmax(320px,1fr)] xl:items-start">
           <div className="space-y-8">
-            <SectionCard title="Basisinformationen">
-              <div className="space-y-6">
-                <div>
-                  <FieldLabel htmlFor="event-name">Event Name</FieldLabel>
-                  <SoftInput
-                    id="event-name"
-                    name="event-name"
-                    placeholder="z.B. STV Frühjahrsilfe 2026"
-                  />
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
+            <PageReveal delay={160} variant="left">
+              <SectionCard title="Basisinformationen">
+                <div className="space-y-6">
                   <div>
-                    <FieldLabel htmlFor="year">Jahr</FieldLabel>
+                    <FieldLabel htmlFor="event-name">Event Name</FieldLabel>
                     <SoftInput
-                      id="year"
-                      name="year"
-                      defaultValue="2026"
-                      inputMode="numeric"
+                      id="event-name"
+                      name="event-name"
+                      placeholder="z.B. STV Frühjahrsilfe 2026"
                     />
                   </div>
 
-                  <div>
-                    <FieldLabel>Status</FieldLabel>
-                    <div className="flex h-14 items-center gap-3 rounded-2xl bg-input-bg px-5 text-[0.95rem] font-medium text-charcoal">
-                      <span className="size-2.5 rounded-full bg-accent-red" />
-                      <span>Planung</span>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <FieldLabel htmlFor="year">Jahr</FieldLabel>
+                      <SoftInput
+                        id="year"
+                        name="year"
+                        defaultValue="2026"
+                        inputMode="numeric"
+                      />
                     </div>
-                  </div>
-                </div>
 
-                <div>
-                  <FieldLabel htmlFor="description">Beschreibung</FieldLabel>
-                  <SoftTextarea
-                    id="description"
-                    name="description"
-                    placeholder="Beschreiben Sie das Event, die Ziele und besondere Merkmale..."
-                  />
-                </div>
-              </div>
-            </SectionCard>
-
-            <SectionCard
-              title="Event-Tage hinzufügen"
-              action={<SectionAction>Tag hinzufügen</SectionAction>}
-            >
-              <div className="rounded-[1.75rem] bg-[#fdf2f2] p-5">
-                <div className="grid gap-4 md:grid-cols-[minmax(0,0.95fr)_1px_minmax(0,1.05fr)_auto] md:items-center">
-                  <div>
-                    <FieldLabel>Datum</FieldLabel>
-                    <div className="flex items-center gap-3 text-[0.95rem] font-medium text-input-text">
-                      <CalendarDays className="size-5 text-accent-red" />
-                      <span>mm/dd/yyyy</span>
+                    <div>
+                      <FieldLabel>Status</FieldLabel>
+                      <div className="flex h-14 items-center gap-3 rounded-2xl bg-input-bg px-5 text-[0.95rem] font-medium text-charcoal">
+                        <span className="size-2.5 rounded-full bg-accent-red" />
+                        <span>Planung</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="hidden h-full w-px bg-[#eadede] md:block" />
-
-                  <div className="border-t border-[#eadede] pt-4 md:border-0 md:pt-0">
-                    <FieldLabel>Bezeichnung</FieldLabel>
-                    <p className="text-[0.95rem] font-medium text-input-text">
-                      z.B. Eröffnung
-                    </p>
+                  <div>
+                    <FieldLabel htmlFor="description">Beschreibung</FieldLabel>
+                    <SoftTextarea
+                      id="description"
+                      name="description"
+                      placeholder="Beschreiben Sie das Event, die Ziele und besondere Merkmale..."
+                    />
                   </div>
-
-                  <button
-                    type="button"
-                    aria-label="Tag entfernen"
-                    className="inline-flex size-11 items-center justify-center justify-self-end rounded-2xl bg-white text-accent-red shadow-[0_10px_24px_rgba(220,31,45,0.12)] transition hover:bg-accent-red hover:text-white"
-                  >
-                    <Trash2 className="size-5" />
-                  </button>
                 </div>
-              </div>
+              </SectionCard>
+            </PageReveal>
 
-              <EmptyStateBox className="mt-5">
-                Keine weiteren Tage festgelegt
-              </EmptyStateBox>
-            </SectionCard>
+            <PageReveal delay={260} variant="left">
+              <SectionCard
+                title="Event-Tage hinzufügen"
+                action={<SectionAction>Tag hinzufügen</SectionAction>}
+              >
+                <div className="rounded-[1.75rem] bg-[#fdf2f2] p-5">
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,0.95fr)_1px_minmax(0,1.05fr)_auto] md:items-center">
+                    <div>
+                      <FieldLabel>Datum</FieldLabel>
+                      <div className="flex items-center gap-3 text-[0.95rem] font-medium text-input-text">
+                        <CalendarDays className="size-5 text-accent-red" />
+                        <span>mm/dd/yyyy</span>
+                      </div>
+                    </div>
+
+                    <div className="hidden h-full w-px bg-[#eadede] md:block" />
+
+                    <div className="border-t border-[#eadede] pt-4 md:border-0 md:pt-0">
+                      <FieldLabel>Bezeichnung</FieldLabel>
+                      <p className="text-[0.95rem] font-medium text-input-text">
+                        z.B. Eröffnung
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      aria-label="Tag entfernen"
+                      className="inline-flex size-11 items-center justify-center justify-self-end rounded-2xl bg-white text-accent-red shadow-[0_10px_24px_rgba(220,31,45,0.12)] transition hover:bg-accent-red hover:text-white"
+                    >
+                      <Trash2 className="size-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <EmptyStateBox className="mt-5">
+                  Keine weiteren Tage festgelegt
+                </EmptyStateBox>
+              </SectionCard>
+            </PageReveal>
           </div>
 
           <aside className="space-y-6">
-            <PreviewCard />
+            <PageReveal delay={200} variant="right">
+              <PreviewCard />
+            </PageReveal>
 
-            <div className="space-y-4">
-              <Button
-                className="h-[58px] w-full rounded-[1.35rem] bg-gradient-to-r from-[#f03a49] to-[#b90f1d] text-base font-semibold text-white shadow-[0_20px_40px_rgba(220,31,45,0.26)] hover:opacity-95"
-                type="button"
-              >
-                Speichern
-              </Button>
+            <PageReveal delay={300} variant="right">
+              <div className="space-y-4">
+                <Button
+                  className="h-[58px] w-full rounded-[1.35rem] bg-gradient-to-r from-[#f03a49] to-[#b90f1d] text-base font-semibold text-white shadow-[0_20px_40px_rgba(220,31,45,0.26)] hover:opacity-95"
+                  type="button"
+                >
+                  Speichern
+                </Button>
 
-              <Button
-                variant="secondary"
-                className="h-[58px] w-full rounded-[1.35rem] border-0 bg-[#f5e8e8] text-base font-semibold text-charcoal hover:bg-[#efdddd]"
-                type="button"
-              >
-                Abbrechen
-              </Button>
-            </div>
-
-            <section className="rounded-[2rem] bg-[#fff1f1] p-6 shadow-[0_18px_40px_rgba(42,23,23,0.05)]">
-              <div className="flex gap-4">
-                <div className="w-1 rounded-full bg-accent-red" />
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-accent-red shadow-[0_10px_24px_rgba(220,31,45,0.08)]">
-                      <Info className="size-5" />
-                    </div>
-                    <h3 className="text-xl font-semibold tracking-[-0.02em] text-charcoal">
-                      Hilfe-Center
-                    </h3>
-                  </div>
-
-                  <p className="mt-4 text-sm leading-7 text-muted-warm">
-                    Benötigen Sie Hilfe beim Einrichten Ihres Lottomatch Events?
-                    Unser Team steht Ihnen zur Verfügung.
-                  </p>
-                </div>
+                <Button
+                  variant="secondary"
+                  className="h-[58px] w-full rounded-[1.35rem] border-0 bg-[#f5e8e8] text-base font-semibold text-charcoal hover:bg-[#efdddd]"
+                  type="button"
+                >
+                  Abbrechen
+                </Button>
               </div>
-            </section>
+            </PageReveal>
+
+            <PageReveal delay={380} variant="right">
+              <section className="rounded-[2rem] bg-[#fff1f1] p-6 shadow-[0_18px_40px_rgba(42,23,23,0.05)]">
+                <div className="flex gap-4">
+                  <div className="w-1 rounded-full bg-accent-red" />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-accent-red shadow-[0_10px_24px_rgba(220,31,45,0.08)]">
+                        <Info className="size-5" />
+                      </div>
+                      <h3 className="text-xl font-semibold tracking-[-0.02em] text-charcoal">
+                        Hilfe-Center
+                      </h3>
+                    </div>
+
+                    <p className="mt-4 text-sm leading-7 text-muted-warm">
+                      Benötigen Sie Hilfe beim Einrichten Ihres Lottomatch Events?
+                      Unser Team steht Ihnen zur Verfügung.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </PageReveal>
           </aside>
         </div>
 
-        <SectionCard
-          title="Anstehende Events"
-          action={<SectionAction>Tag hinzufügen</SectionAction>}
-          className="mt-8"
-        >
-          <div className="space-y-4">
-            {upcomingRows.map((row) => (
-              <EmptyStateBox key={row}>Keine anstehende Events</EmptyStateBox>
-            ))}
-          </div>
-        </SectionCard>
+        <PageReveal delay={460} variant="up">
+          <SectionCard
+            title="Anstehende Events"
+            action={<SectionAction>Tag hinzufügen</SectionAction>}
+            className="mt-8"
+          >
+            <div className="space-y-4">
+              {upcomingRows.map((row) => (
+                <EmptyStateBox key={row}>Keine anstehende Events</EmptyStateBox>
+              ))}
+            </div>
+          </SectionCard>
+        </PageReveal>
       </div>
     </div>
   );

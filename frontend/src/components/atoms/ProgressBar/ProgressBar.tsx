@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ProgressBarProps {
@@ -7,6 +10,13 @@ interface ProgressBarProps {
 
 export default function ProgressBar({ value, className }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(100, value));
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setWidth(clamped));
+    return () => cancelAnimationFrame(id);
+  }, [clamped]);
+
   return (
     <div
       className={cn(
@@ -15,8 +25,8 @@ export default function ProgressBar({ value, className }: ProgressBarProps) {
       )}
     >
       <div
-        className="h-full rounded-full bg-accent-red transition-all"
-        style={{ width: `${clamped}%` }}
+        className="h-full rounded-full bg-accent-red transition-[width] duration-[1500ms] ease-out"
+        style={{ width: `${width}%` }}
       />
     </div>
   );

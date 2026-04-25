@@ -29,6 +29,7 @@ import {
   Wine,
 } from "lucide-react";
 
+import PageReveal from "@/components/atoms/PageReveal";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -684,121 +685,140 @@ export default function DesktopPrizeManagementPage() {
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
         <header className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
-              Preise
-            </h1>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
-              Verwalten Sie Gewinne, Sponsoren und Verlosungsdetails für Ihr Event.
-            </p>
-          </div>
+          <PageReveal delay={0} variant="up" className="max-w-4xl">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+                Preise
+              </h1>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
+                Verwalten Sie Gewinne, Sponsoren und Verlosungsdetails für Ihr Event.
+              </p>
+            </div>
+          </PageReveal>
 
-          <div className="flex flex-col gap-3 sm:flex-row xl:shrink-0">
-            <HeaderActionButton
-              icon={Upload}
-              variant="secondary"
-              onClick={() => handlePlaceholderAction("Preise importieren")}
-            >
-              Importieren
-            </HeaderActionButton>
-            <HeaderActionButton
-              icon={Plus}
-              variant="primary"
-              onClick={() => handlePlaceholderAction("Preis erstellen")}
-            >
-              Preis erstellen
-            </HeaderActionButton>
-          </div>
+          <PageReveal delay={120} variant="right" className="xl:shrink-0">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <HeaderActionButton
+                icon={Upload}
+                variant="secondary"
+                onClick={() => handlePlaceholderAction("Preise importieren")}
+              >
+                Importieren
+              </HeaderActionButton>
+              <HeaderActionButton
+                icon={Plus}
+                variant="primary"
+                onClick={() => handlePlaceholderAction("Preis erstellen")}
+              >
+                Preis erstellen
+              </HeaderActionButton>
+            </div>
+          </PageReveal>
         </header>
 
         <section className="mt-8 grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
-          {PRIZE_KPIS.map((kpi) => (
-            <PrizeKpiCard key={kpi.label} kpi={kpi} />
+          {PRIZE_KPIS.map((kpi, index) => (
+            <PageReveal
+              key={kpi.label}
+              delay={200 + index * 80}
+              variant="up"
+              className="h-full w-full"
+            >
+              <PrizeKpiCard kpi={kpi} />
+            </PageReveal>
           ))}
         </section>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
-          <SurfaceCard className="p-4 sm:p-5 lg:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <label className="relative block flex-1">
-                <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Preise nach Name, Sponsor oder Kategorie suchen..."
-                  className="h-[58px] w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] pl-12 pr-4 text-sm text-charcoal shadow-[0_10px_24px_rgba(31,29,29,0.04)] outline-none transition placeholder:text-muted-warm/80 focus:border-accent-red/25 focus:ring-4 focus:ring-accent-red/10"
+          <PageReveal delay={540} variant="left" className="h-full w-full">
+            <SurfaceCard className="p-4 sm:p-5 lg:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <label className="relative block flex-1">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Preise nach Name, Sponsor oder Kategorie suchen..."
+                    className="h-[58px] w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] pl-12 pr-4 text-sm text-charcoal shadow-[0_10px_24px_rgba(31,29,29,0.04)] outline-none transition placeholder:text-muted-warm/80 focus:border-accent-red/25 focus:ring-4 focus:ring-accent-red/10"
+                  />
+                </label>
+
+                <PrizeFilterMenu
+                  selectedFilter={selectedFilter}
+                  onSelect={setSelectedFilter}
                 />
-              </label>
-
-              <PrizeFilterMenu
-                selectedFilter={selectedFilter}
-                onSelect={setSelectedFilter}
-              />
-            </div>
-
-            <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f0e4e4] bg-[#fffdfd]">
-              <div className="hidden grid-cols-[minmax(0,2.4fr)_minmax(118px,0.9fr)_minmax(0,1.1fr)_110px_110px_44px] gap-4 border-b border-[#f0e4e4] px-6 py-4 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-muted-warm/80 lg:grid">
-                <span>Preis</span>
-                <span>Kategorie</span>
-                <span>Sponsor</span>
-                <span>Wert</span>
-                <span>Status</span>
-                <span />
               </div>
 
-              {filteredPrizes.length === 0 ? (
-                <div className="px-6 py-12 text-center">
-                  <p className="text-base font-semibold text-charcoal">
-                    Keine Preise gefunden
-                  </p>
-                  <p className="mt-2 text-sm text-muted-warm">
-                    Passen Sie Ihre Suche oder die Filter an.
-                  </p>
+              <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f0e4e4] bg-[#fffdfd]">
+                <div className="hidden grid-cols-[minmax(0,2.4fr)_minmax(118px,0.9fr)_minmax(0,1.1fr)_110px_110px_44px] gap-4 border-b border-[#f0e4e4] px-6 py-4 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-muted-warm/80 lg:grid">
+                  <span>Preis</span>
+                  <span>Kategorie</span>
+                  <span>Sponsor</span>
+                  <span>Wert</span>
+                  <span>Status</span>
+                  <span />
                 </div>
-              ) : (
-                <>
-                  <div className="hidden lg:block">
-                    {filteredPrizes.map((prize, index) => (
-                      <div
-                        key={prize.id}
-                        className={cn(
-                          index !== filteredPrizes.length - 1 &&
-                            "border-b border-[#f0e4e4]",
-                        )}
-                      >
-                        <PrizeDesktopRow
+
+                {filteredPrizes.length === 0 ? (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-base font-semibold text-charcoal">
+                      Keine Preise gefunden
+                    </p>
+                    <p className="mt-2 text-sm text-muted-warm">
+                      Passen Sie Ihre Suche oder die Filter an.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block">
+                      {filteredPrizes.map((prize, index) => (
+                        <div
+                          key={prize.id}
+                          className={cn(
+                            index !== filteredPrizes.length - 1 &&
+                              "border-b border-[#f0e4e4]",
+                          )}
+                        >
+                          <PrizeDesktopRow
+                            prize={prize}
+                            onAction={handlePlaceholderAction}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3 p-3 lg:hidden">
+                      {filteredPrizes.map((prize) => (
+                        <PrizeMobileCard
+                          key={prize.id}
                           prize={prize}
                           onAction={handlePlaceholderAction}
                         />
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
 
-                  <div className="space-y-3 p-3 lg:hidden">
-                    {filteredPrizes.map((prize) => (
-                      <PrizeMobileCard
-                        key={prize.id}
-                        prize={prize}
-                        onAction={handlePlaceholderAction}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <PrizePagination visibleCount={filteredPrizes.length} />
-          </SurfaceCard>
+              <PrizePagination visibleCount={filteredPrizes.length} />
+            </SurfaceCard>
+          </PageReveal>
 
           <aside className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-1">
-            <PrizeOverviewCard />
-            <NextMainPrizeCard />
-            <PrizeHintCard
-              onAdjust={() =>
-                handlePlaceholderAction("Preiseinstellungen anpassen")
-              }
-            />
+            <PageReveal delay={640} variant="right" className="h-full w-full">
+              <PrizeOverviewCard />
+            </PageReveal>
+            <PageReveal delay={720} variant="right" className="h-full w-full">
+              <NextMainPrizeCard />
+            </PageReveal>
+            <PageReveal delay={800} variant="right" className="h-full w-full">
+              <PrizeHintCard
+                onAdjust={() =>
+                  handlePlaceholderAction("Preiseinstellungen anpassen")
+                }
+              />
+            </PageReveal>
           </aside>
         </div>
       </div>

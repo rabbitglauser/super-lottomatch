@@ -41,6 +41,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import PageReveal from "@/components/atoms/PageReveal";
 import {
   analyticsPeriods,
   analyticsSummary,
@@ -711,72 +712,94 @@ export default function DesktopDataAnalyticsPage() {
     <div className="min-h-full bg-page-dashboard">
       <div className="mx-auto w-full max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8 xl:px-10 xl:py-8">
         <header className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
-              Daten &amp; Auswertungen
-            </h1>
-            <p className="mt-3 text-base leading-7 text-muted-warm sm:text-lg">
-              Behalten Sie Kennzahlen, Teilnehmeraktivität und
-              Event-Performance im Blick.
-            </p>
-          </div>
+          <PageReveal delay={0} variant="up" className="max-w-3xl">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+                Daten &amp; Auswertungen
+              </h1>
+              <p className="mt-3 text-base leading-7 text-muted-warm sm:text-lg">
+                Behalten Sie Kennzahlen, Teilnehmeraktivität und
+                Event-Performance im Blick.
+              </p>
+            </div>
+          </PageReveal>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handlePlaceholderAction("Bericht exportieren")}
-              className="h-12 rounded-xl border-black/5 bg-white px-4 text-charcoal shadow-[0_14px_30px_rgba(31,29,29,0.05)] hover:bg-[#fff7f7]"
-            >
-              <Download className="size-4" />
-              Bericht exportieren
-            </Button>
-            <Button
-              type="button"
-              onClick={() => handlePlaceholderAction("Neuer Report")}
-              className="h-12 rounded-xl border-transparent bg-[linear-gradient(135deg,#df2634_0%,#b80012_100%)] px-4 text-white shadow-[0_18px_35px_rgba(223,38,52,0.24)] hover:opacity-95"
-            >
-              <Plus className="size-4" />
-              Neuer Report
-            </Button>
-          </div>
+          <PageReveal delay={120} variant="right">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handlePlaceholderAction("Bericht exportieren")}
+                className="h-12 rounded-xl border-black/5 bg-white px-4 text-charcoal shadow-[0_14px_30px_rgba(31,29,29,0.05)] hover:bg-[#fff7f7]"
+              >
+                <Download className="size-4" />
+                Bericht exportieren
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handlePlaceholderAction("Neuer Report")}
+                className="h-12 rounded-xl border-transparent bg-[linear-gradient(135deg,#df2634_0%,#b80012_100%)] px-4 text-white shadow-[0_18px_35px_rgba(223,38,52,0.24)] hover:opacity-95"
+              >
+                <Plus className="size-4" />
+                Neuer Report
+              </Button>
+            </div>
+          </PageReveal>
         </header>
 
         <section className="mt-8 grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
-          <KpiCard
-            label="Gesamt Gäste"
-            value={formatSwissNumber(analyticsSummary.totalGuests)}
-            delta="+8.2%"
-            subtitle="vs. letzte 30 Tage"
-            icon={Users}
-          />
-          <KpiCard
-            label="Check-in Rate"
-            value={`${analyticsSummary.checkInRate}%`}
-            progress={analyticsSummary.checkInRate}
-            icon={CheckCircle2}
-          />
-          <KpiCard
-            label="Aktive Events"
-            value={String(analyticsSummary.activeEvents)}
-            icon={CalendarDays}
-          />
-          <KpiCard
-            label="Verlosungen Abgeschlossen"
-            value={String(analyticsSummary.completedDrawings)}
-            icon={Trophy}
-          />
+          <PageReveal delay={200} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Gesamt Gäste"
+              value={formatSwissNumber(analyticsSummary.totalGuests)}
+              delta="+8.2%"
+              subtitle="vs. letzte 30 Tage"
+              icon={Users}
+            />
+          </PageReveal>
+          <PageReveal delay={280} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Check-in Rate"
+              value={`${analyticsSummary.checkInRate}%`}
+              progress={analyticsSummary.checkInRate}
+              icon={CheckCircle2}
+            />
+          </PageReveal>
+          <PageReveal delay={360} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Aktive Events"
+              value={String(analyticsSummary.activeEvents)}
+              icon={CalendarDays}
+            />
+          </PageReveal>
+          <PageReveal delay={440} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Verlosungen Abgeschlossen"
+              value={String(analyticsSummary.completedDrawings)}
+              icon={Trophy}
+            />
+          </PageReveal>
         </section>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_340px]">
           <div className="grid gap-6 xl:grid-cols-3">
-            <ParticipantsChart className="xl:col-span-2" />
-            <DeviceDistributionChart />
-            <CheckinsBarChart className="xl:col-span-2" />
-            <TopEventsTable className="xl:col-span-3" />
+            <PageReveal delay={520} variant="left" className="h-full w-full xl:col-span-2">
+              <ParticipantsChart className="xl:col-span-2" />
+            </PageReveal>
+            <PageReveal delay={600} variant="up" className="h-full w-full">
+              <DeviceDistributionChart />
+            </PageReveal>
+            <PageReveal delay={680} variant="left" className="h-full w-full xl:col-span-2">
+              <CheckinsBarChart className="xl:col-span-2" />
+            </PageReveal>
+            <PageReveal delay={760} variant="up" className="h-full w-full xl:col-span-3">
+              <TopEventsTable className="xl:col-span-3" />
+            </PageReveal>
           </div>
 
-          <RightAnalyticsSidebar onAction={handlePlaceholderAction} />
+          <PageReveal delay={620} variant="right" className="h-full w-full">
+            <RightAnalyticsSidebar onAction={handlePlaceholderAction} />
+          </PageReveal>
         </div>
       </div>
     </div>

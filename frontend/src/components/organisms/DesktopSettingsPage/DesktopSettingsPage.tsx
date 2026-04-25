@@ -24,6 +24,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import PageReveal from "@/components/atoms/PageReveal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -764,70 +765,90 @@ export default function DesktopSettingsPage() {
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
         <header className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
-              Einstellungen
-            </h1>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
-              Verwalten Sie Konto, Benachrichtigungen, Sicherheit und Event-Standards.
-            </p>
-          </div>
+          <PageReveal delay={0} variant="up" className="max-w-4xl">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+                Einstellungen
+              </h1>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
+                Verwalten Sie Konto, Benachrichtigungen, Sicherheit und Event-Standards.
+              </p>
+            </div>
+          </PageReveal>
 
-          <div className="flex flex-col gap-3 sm:flex-row xl:shrink-0">
-            <HeaderButton
-              icon={RotateCcw}
-              variant="secondary"
-              onClick={handleReset}
-            >
-              Zurücksetzen
-            </HeaderButton>
-            <HeaderButton icon={Check} variant="primary" onClick={handleSave}>
-              Änderungen speichern
-            </HeaderButton>
-          </div>
+          <PageReveal delay={120} variant="right" className="xl:shrink-0">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <HeaderButton
+                icon={RotateCcw}
+                variant="secondary"
+                onClick={handleReset}
+              >
+                Zurücksetzen
+              </HeaderButton>
+              <HeaderButton icon={Check} variant="primary" onClick={handleSave}>
+                Änderungen speichern
+              </HeaderButton>
+            </div>
+          </PageReveal>
         </header>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-          <ProfileCard
-            onProfileImageChange={() =>
-              handlePlaceholderAction("Profilbild ändern")
-            }
-          />
-          <QuickStatusCard />
+          <PageReveal delay={220} variant="left" className="h-full w-full">
+            <ProfileCard
+              onProfileImageChange={() =>
+                handlePlaceholderAction("Profilbild ändern")
+              }
+            />
+          </PageReveal>
+          <PageReveal delay={300} variant="right" className="h-full w-full">
+            <QuickStatusCard />
+          </PageReveal>
         </div>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-          <GeneralSettingsCard
-            settings={generalSettings}
-            onChange={handleGeneralSettingChange}
-          />
-          <NotificationsCard
-            settings={notificationSettings}
-            onChange={handleNotificationChange}
-          />
+          <PageReveal delay={380} variant="left" className="h-full w-full">
+            <GeneralSettingsCard
+              settings={generalSettings}
+              onChange={handleGeneralSettingChange}
+            />
+          </PageReveal>
+          <PageReveal delay={460} variant="right" className="h-full w-full">
+            <NotificationsCard
+              settings={notificationSettings}
+              onChange={handleNotificationChange}
+            />
+          </PageReveal>
         </div>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(300px,0.9fr)]">
-          <SecurityCard
-            onPasswordChange={() =>
-              handlePlaceholderAction("Passwort ändern")
-            }
-            onManageDevices={() =>
-              handlePlaceholderAction("Alle Geräte anzeigen")
-            }
-          />
-          <BrandingStandardsCard
-            onEditBranding={() =>
-              handlePlaceholderAction("Branding bearbeiten")
-            }
-          />
-          <HelpCenterCard
-            onSupport={() => handlePlaceholderAction("Support kontaktieren")}
-          />
+          <PageReveal delay={540} variant="up" className="h-full w-full">
+            <SecurityCard
+              onPasswordChange={() =>
+                handlePlaceholderAction("Passwort ändern")
+              }
+              onManageDevices={() =>
+                handlePlaceholderAction("Alle Geräte anzeigen")
+              }
+            />
+          </PageReveal>
+          <PageReveal delay={620} variant="up" className="h-full w-full">
+            <BrandingStandardsCard
+              onEditBranding={() =>
+                handlePlaceholderAction("Branding bearbeiten")
+              }
+            />
+          </PageReveal>
+          <PageReveal delay={700} variant="up" className="h-full w-full">
+            <HelpCenterCard
+              onSupport={() => handlePlaceholderAction("Support kontaktieren")}
+            />
+          </PageReveal>
         </div>
 
         <div className="mt-6">
-          <IntegrationsCard />
+          <PageReveal delay={780} variant="up">
+            <IntegrationsCard />
+          </PageReveal>
         </div>
       </div>
     </div>

@@ -31,6 +31,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import PageReveal from "@/components/atoms/PageReveal";
 import { cn } from "@/lib/utils";
 
 type GuestStatus = "checked-in" | "expected" | "no-show";
@@ -811,105 +812,135 @@ export default function CheckInDashboardPage() {
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
         <header className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
-              Check-in
-            </h1>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
-              Scannen Sie Tickets oder suchen Sie Gäste, um den Check-in
-              durchzuführen.
-            </p>
-          </div>
+          <PageReveal delay={0} variant="up" className="max-w-4xl">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
+                Check-in
+              </h1>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-muted-warm sm:text-lg">
+                Scannen Sie Tickets oder suchen Sie Gäste, um den Check-in
+                durchzuführen.
+              </p>
+            </div>
+          </PageReveal>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => handlePlaceholderAction("Check-in Einstellungen")}
-            className="h-12 rounded-xl border-[#eadede] bg-white px-4 text-charcoal shadow-[0_14px_30px_rgba(31,29,29,0.05)] hover:bg-[#fff7f7]"
-          >
-            <Settings className="size-4 text-accent-red" />
-            Check-in Einstellungen
-          </Button>
+          <PageReveal delay={120} variant="right">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handlePlaceholderAction("Check-in Einstellungen")}
+              className="h-12 rounded-xl border-[#eadede] bg-white px-4 text-charcoal shadow-[0_14px_30px_rgba(31,29,29,0.05)] hover:bg-[#fff7f7]"
+            >
+              <Settings className="size-4 text-accent-red" />
+              Check-in Einstellungen
+            </Button>
+          </PageReveal>
         </header>
 
         <section className="mt-8 grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
-          <KpiCard
-            label="Heute Gesamt"
-            value={String(summary.total)}
-            subtitle="Gäste erwartet"
-            icon={Users}
-          />
-          <KpiCard
-            label="Bereits Eingecheckt"
-            value={String(summary.checkedIn)}
-            subtitle={formatRate(checkedInRate)}
-            icon={CheckCircle2}
-            progress={checkedInRate}
-          />
-          <KpiCard
-            label="No-Shows"
-            value={String(summary.noShow)}
-            subtitle={formatRate(noShowRate)}
-            icon={UserX}
-          />
-          <KpiCard
-            label="Verbleibend"
-            value={String(summary.expected)}
-            subtitle={formatRate(expectedRate)}
-            icon={CircleDot}
-          />
+          <PageReveal delay={200} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Heute Gesamt"
+              value={String(summary.total)}
+              subtitle="Gäste erwartet"
+              icon={Users}
+            />
+          </PageReveal>
+          <PageReveal delay={280} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Bereits Eingecheckt"
+              value={String(summary.checkedIn)}
+              subtitle={formatRate(checkedInRate)}
+              icon={CheckCircle2}
+              progress={checkedInRate}
+            />
+          </PageReveal>
+          <PageReveal delay={360} variant="up" className="h-full w-full">
+            <KpiCard
+              label="No-Shows"
+              value={String(summary.noShow)}
+              subtitle={formatRate(noShowRate)}
+              icon={UserX}
+            />
+          </PageReveal>
+          <PageReveal delay={440} variant="up" className="h-full w-full">
+            <KpiCard
+              label="Verbleibend"
+              value={String(summary.expected)}
+              subtitle={formatRate(expectedRate)}
+              icon={CircleDot}
+            />
+          </PageReveal>
         </section>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,2.85fr)_minmax(320px,1.12fr)] 2xl:grid-cols-[minmax(0,3.05fr)_minmax(340px,1fr)]">
-          <AppCard className="p-4 sm:p-5 lg:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <label className="relative block flex-1">
-                <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(event) => handleQueryChange(event.target.value)}
-                  placeholder="Nach Name, E-Mail, Ticket oder Firma suchen..."
-                  className="h-[52px] w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] pl-12 pr-4 text-sm text-charcoal shadow-[0_10px_24px_rgba(31,29,29,0.04)] outline-none transition placeholder:text-muted-warm/80 focus:border-accent-red/25 focus:ring-4 focus:ring-accent-red/10"
+          <PageReveal delay={520} variant="left" className="h-full w-full">
+            <AppCard className="p-4 sm:p-5 lg:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <label className="relative block flex-1">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => handleQueryChange(event.target.value)}
+                    placeholder="Nach Name, E-Mail, Ticket oder Firma suchen..."
+                    className="h-[52px] w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] pl-12 pr-4 text-sm text-charcoal shadow-[0_10px_24px_rgba(31,29,29,0.04)] outline-none transition placeholder:text-muted-warm/80 focus:border-accent-red/25 focus:ring-4 focus:ring-accent-red/10"
+                  />
+                </label>
+
+                <FilterMenu
+                  selectedFilter={statusFilter}
+                  onSelect={handleFilterSelect}
                 />
-              </label>
-
-              <FilterMenu
-                selectedFilter={statusFilter}
-                onSelect={handleFilterSelect}
-              />
-            </div>
-
-            <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f0e4e4] bg-[#fffdfd]">
-              <div className="hidden grid-cols-[minmax(0,2.35fr)_minmax(0,1.45fr)_minmax(132px,0.9fr)_72px_44px] gap-4 border-b border-[#f0e4e4] px-6 py-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-muted-warm/80 lg:grid">
-                <span>Gast</span>
-                <span>Ticket / Gruppe</span>
-                <span>Status</span>
-                <span>Zeit</span>
-                <span />
               </div>
 
-              {visibleGuests.length === 0 ? (
-                <div className="px-6 py-12 text-center">
-                  <p className="text-base font-semibold text-charcoal">
-                    Keine Gäste gefunden
-                  </p>
-                  <p className="mt-2 text-sm text-muted-warm">
-                    Passen Sie Ihre Suche oder den Filter an.
-                  </p>
+              <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f0e4e4] bg-[#fffdfd]">
+                <div className="hidden grid-cols-[minmax(0,2.35fr)_minmax(0,1.45fr)_minmax(132px,0.9fr)_72px_44px] gap-4 border-b border-[#f0e4e4] px-6 py-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-muted-warm/80 lg:grid">
+                  <span>Gast</span>
+                  <span>Ticket / Gruppe</span>
+                  <span>Status</span>
+                  <span>Zeit</span>
+                  <span />
                 </div>
-              ) : (
-                <>
-                  <div className="hidden lg:block">
-                    {visibleGuests.map((guest, index) => (
-                      <div
-                        key={guest.id}
-                        className={cn(
-                          index !== visibleGuests.length - 1 &&
-                            "border-b border-[#f0e4e4]",
-                        )}
-                      >
-                        <GuestListRow
+
+                {visibleGuests.length === 0 ? (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-base font-semibold text-charcoal">
+                      Keine Gäste gefunden
+                    </p>
+                    <p className="mt-2 text-sm text-muted-warm">
+                      Passen Sie Ihre Suche oder den Filter an.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block">
+                      {visibleGuests.map((guest, index) => (
+                        <div
+                          key={guest.id}
+                          className={cn(
+                            index !== visibleGuests.length - 1 &&
+                              "border-b border-[#f0e4e4]",
+                          )}
+                        >
+                          <GuestListRow
+                            guest={guest}
+                            onShowDetails={(selectedGuest) =>
+                              handlePlaceholderAction(
+                                `Details für ${selectedGuest.name}`,
+                              )
+                            }
+                            onManualCheckIn={handleManualCheckIn}
+                            onCycleStatus={handleCycleStatus}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3 p-3 lg:hidden">
+                      {visibleGuests.map((guest) => (
+                        <GuestMobileCard
+                          key={guest.id}
                           guest={guest}
                           onShowDetails={(selectedGuest) =>
                             handlePlaceholderAction(
@@ -919,54 +950,44 @@ export default function CheckInDashboardPage() {
                           onManualCheckIn={handleManualCheckIn}
                           onCycleStatus={handleCycleStatus}
                         />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-3 p-3 lg:hidden">
-                    {visibleGuests.map((guest) => (
-                      <GuestMobileCard
-                        key={guest.id}
-                        guest={guest}
-                        onShowDetails={(selectedGuest) =>
-                          handlePlaceholderAction(
-                            `Details für ${selectedGuest.name}`,
-                          )
-                        }
-                        onManualCheckIn={handleManualCheckIn}
-                        onCycleStatus={handleCycleStatus}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {canLoadMore ? (
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setVisibleCount((currentCount) => currentCount + 4)
-                  }
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-accent-red transition hover:text-accent-red-dark"
-                >
-                  Weitere Gäste laden
-                  <ChevronDown className="size-4" />
-                </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            ) : null}
-          </AppCard>
+
+              {canLoadMore ? (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisibleCount((currentCount) => currentCount + 4)
+                    }
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-accent-red transition hover:text-accent-red-dark"
+                  >
+                    Weitere Gäste laden
+                    <ChevronDown className="size-4" />
+                  </button>
+                </div>
+              ) : null}
+            </AppCard>
+          </PageReveal>
 
           <aside className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-1">
-            <TicketScannerCard
-              onActivateCamera={() => handlePlaceholderAction("Kamera aktivieren")}
-            />
-            <CheckInOverviewCard summary={summary} />
-            <RecentCheckInsCard
-              guests={recentGuests}
-              onViewAll={() => handlePlaceholderAction("Alle Check-ins anzeigen")}
-            />
+            <PageReveal delay={620} variant="right" className="h-full w-full">
+              <TicketScannerCard
+                onActivateCamera={() => handlePlaceholderAction("Kamera aktivieren")}
+              />
+            </PageReveal>
+            <PageReveal delay={700} variant="right" className="h-full w-full">
+              <CheckInOverviewCard summary={summary} />
+            </PageReveal>
+            <PageReveal delay={780} variant="right" className="h-full w-full">
+              <RecentCheckInsCard
+                guests={recentGuests}
+                onViewAll={() => handlePlaceholderAction("Alle Check-ins anzeigen")}
+              />
+            </PageReveal>
           </aside>
         </div>
       </div>

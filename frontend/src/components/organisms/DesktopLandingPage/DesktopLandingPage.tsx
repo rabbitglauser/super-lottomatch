@@ -91,7 +91,7 @@ export default function DesktopLandingPage() {
   return (
     <div className="relative isolate min-h-dvh overflow-hidden bg-page-dashboard text-charcoal">
       <div className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute inset-x-0 bottom-[4%] h-[76%] opacity-80 sm:bottom-[2%] sm:h-[80%] lg:bottom-0 lg:h-[84%]">
+        <div className="absolute inset-x-[-8%] -bottom-[14%] h-[92%] opacity-85 sm:inset-x-0 sm:bottom-[2%] sm:h-[80%] lg:bottom-0 lg:h-[84%]">
           <GLSLHills
             width="100%"
             height="100%"
@@ -101,8 +101,8 @@ export default function DesktopLandingPage() {
           />
         </div>
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(248,238,238,0.97)_0%,rgba(248,238,238,0.9)_18%,rgba(248,238,238,0.6)_42%,rgba(248,238,238,0.18)_68%,rgba(248,238,238,0.05)_100%)]" />
-        <div className="absolute bottom-[-18%] left-[-16%] h-[48%] w-[54%] bg-[radial-gradient(circle_at_center,rgba(223,38,52,0.14),rgba(223,38,52,0.05)_42%,rgba(248,238,238,0)_72%)] blur-2xl" />
-        <div className="absolute bottom-[-20%] right-[-18%] h-[52%] w-[52%] bg-[radial-gradient(circle_at_center,rgba(184,0,18,0.12),rgba(223,38,52,0.04)_40%,rgba(248,238,238,0)_72%)] blur-2xl" />
+        <div className="absolute bottom-[-24%] left-[-16%] h-[52%] w-[58%] bg-[radial-gradient(circle_at_center,rgba(223,38,52,0.14),rgba(223,38,52,0.05)_42%,rgba(248,238,238,0)_72%)] blur-2xl sm:bottom-[-18%] sm:h-[48%] sm:w-[54%]" />
+        <div className="absolute bottom-[-26%] right-[-18%] h-[56%] w-[56%] bg-[radial-gradient(circle_at_center,rgba(184,0,18,0.12),rgba(223,38,52,0.04)_40%,rgba(248,238,238,0)_72%)] blur-2xl sm:bottom-[-20%] sm:h-[52%] sm:w-[52%]" />
       </div>
 
       <div className="relative z-10 flex min-h-dvh flex-col">
@@ -143,7 +143,7 @@ export default function DesktopLandingPage() {
           </section>
           </div>
 
-          <div className="w-full pb-2 sm:pb-3">
+          <div className="hidden w-full pb-3 md:block">
             <section
               id="features"
               className="mx-auto grid w-full max-w-6xl gap-5 sm:gap-6 md:grid-cols-2 lg:gap-7 xl:grid-cols-4 xl:gap-8"

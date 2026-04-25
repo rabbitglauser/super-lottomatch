@@ -77,7 +77,7 @@ If you find yourself wanting to break this rule, the component probably belongs 
 
 ## 4. Styling rules
 
-Use the **semantic Tailwind tokens** defined in `frontend/src/app/globals.css`:
+Prefer the **semantic Tailwind tokens** defined in `frontend/src/app/globals.css`:
 
 | Token | CSS variable | Use for |
 |-------|--------------|---------|
@@ -91,7 +91,7 @@ Use the **semantic Tailwind tokens** defined in `frontend/src/app/globals.css`:
 | `border-divider` | `--color-divider` | Section separators |
 | `text-footer` | `--color-footer` | Footer text |
 
-**Never hard-code hex values** in component classNames. If a new colour is needed, add a token to `globals.css` first, then use it.
+The newer dashboard pages generally follow these tokens, but parts of the landing page and some high-fidelity mock pages still contain direct color values. For new work, prefer tokens first; if a direct value is used intentionally, keep it consistent with the existing palette.
 
 Target audience note: users are **40+, German-speaking, non-technical**. Keep tap targets large (`h-20` inputs is the current baseline), contrast high, and copy simple. Accessibility is a first-class requirement, not a polish step.
 
@@ -105,8 +105,8 @@ Before committing a new component, confirm:
 - [ ] File path is `components/<tier>s/<Name>/<Name>.tsx` (PascalCase).
 - [ ] Imports only from lower tiers (see the dependency rule).
 - [ ] No `any` — all props have explicit TypeScript types (strict mode is on).
-- [ ] Uses semantic Tailwind tokens, no raw hex.
-- [ ] Has a `<Name>.test.tsx` next to it (see `docs/TESTING.md`).
+- [ ] Uses semantic Tailwind tokens where practical and follows the existing visual system.
+- [ ] Adds tests when the component introduces meaningful behaviour that is currently covered by the repo's test strategy.
 - [ ] No dead code, no magic numbers, meaningful names (see `.claude/skills/code-review.md`).
 
 ### The "5 questions" tier decision tree
@@ -123,27 +123,36 @@ When you're not sure which tier a new component belongs to, answer in order and 
 
 ## 6. Current component map
 
-The atomic design refactor is **complete**. All components follow the tier structure:
+The frontend currently follows the tier structure below:
 
 | Component | Path | Tier | Notes |
 |-----------|------|------|-------|
-| `IconButton` | `atoms/IconButton/` | atom | Wraps shadcn `Button` (ghost + icon variant) |
-| `Input` | `atoms/Input/` | atom | Custom styled text input |
-| `Label` | `atoms/Label/` | atom | Form label with uppercase styling |
-| `NavItem` | `atoms/NavItem/` | atom | Sidebar link with active state detection |
-| `FormField` | `molecules/FormField/` | molecule | Composes Label + Input + icon |
-| `NavActions` | `molecules/NavActions/` | molecule | Top navbar right-side actions |
-| `SidebarHeader` | `molecules/SidebarHeader/` | molecule | Org icon + name display |
-| `SidebarNav` | `molecules/SidebarNav/` | molecule | Renders NAV_ITEMS via NavItem atoms |
-| `AdminHero` | `organisms/AdminHero/` | organism | Login page branded hero section |
-| `Footer` | `organisms/Footer/` | organism | Copyright + legal links |
-| `LoginForm` | `organisms/LoginForm/` | organism | Login form with API integration |
-| `Sidebar` | `organisms/Sidebar/` | organism | Full sidebar: header + nav + CTA |
-| `TopNavbar` | `organisms/TopNavbar/` | organism | Top bar with branding + actions |
-| `DashboardTemplate` | `templates/DashboardTemplate/` | template | TopNavbar + Sidebar + content slot |
-| `LoginTemplate` | `templates/LoginTemplate/` | template | Hero + form two-column layout |
+| `AnimatedCounter` | `atoms/AnimatedCounter/` | atom | Animated number display for KPI cards |
+| `IconButton` | `atoms/IconButton/` | atom | Small icon-only button wrapper |
+| `Input` | `atoms/Input/` | atom | Styled text input |
+| `Label` | `atoms/Label/` | atom | Uppercase field label |
+| `NavItem` | `atoms/NavItem/` | atom | Sidebar link with active state |
+| `PageReveal` | `atoms/PageReveal/` | atom | Shared page entrance animation wrapper |
+| `ProgressBar` | `atoms/ProgressBar/` | atom | Lightweight progress indicator |
+| `StatusPill` | `atoms/StatusPill/` | atom | Reusable status chip |
+| `FormField` | `molecules/FormField/` | molecule | Label + input + icon composition |
+| `DesktopNavActions` | `molecules/DesktopNavActions/` | molecule | Top navbar action group |
+| `DesktopQuickActionCard` | `molecules/DesktopQuickActionCard/` | molecule | Dashboard action card |
+| `DesktopSidebarHeader` | `molecules/DesktopSidebarHeader/` | molecule | Sidebar org/header block |
+| `DesktopSidebarNav` | `molecules/DesktopSidebarNav/` | molecule | Sidebar nav renderer |
+| `DesktopStatCard` | `molecules/DesktopStatCard/` | molecule | KPI/stat display card |
+| `DesktopLoginForm` | `organisms/DesktopLoginForm/` | organism | Login form with backend call |
+| `DesktopLandingPage` | `organisms/DesktopLandingPage/` | organism | Public landing page |
+| `DesktopGuestManagementPage` | `organisms/DesktopGuestManagementPage/` | organism | Guest dashboard page |
+| `CheckInDashboardPage` | `organisms/CheckInDashboardPage/` | organism | Check-in dashboard page |
+| `DesktopPrizeManagementPage` | `organisms/DesktopPrizeManagementPage/` | organism | Prize management page |
+| `DesktopDataAnalyticsPage` | `organisms/DesktopDataAnalyticsPage/` | organism | Analytics dashboard page |
+| `DesktopSettingsPage` | `organisms/DesktopSettingsPage/` | organism | Settings page |
+| `DesktopDashboardTemplate` | `templates/DesktopDashboardTemplate/` | template | Top navbar + sidebar + content slot |
+| `DesktopLoginTemplate` | `templates/DesktopLoginTemplate/` | template | Hero + form layout |
+| `PublicLegalPageTemplate` | `templates/PublicLegalPageTemplate/` | template | Legal page wrapper |
 
-**Primitive layer:** shadcn/ui components live in `components/ui/` (currently: `button.tsx`). Atoms wrap these primitives with domain-specific styling.
+**Primitive layer:** shadcn/ui components live in `components/ui/` (currently `button.tsx`, `chart.tsx`, and `GLSLHills/`). Atoms wrap these primitives or provide tiny shared utilities.
 
 **Barrel exports:** Every component folder has an `index.ts` for clean imports (e.g. `@/components/atoms/NavItem`).
 

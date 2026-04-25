@@ -1,10 +1,12 @@
 # USER STORIES
 
-**Date:** 2026-06-04
-**Status:** Ratified
+**Date:** 2026-04-25
+**Status:** Archived backlog / target-state stories
 
 
-This file contains the user stories for the Super-Lottomatch project. Each story is written in the standard format (As a <role>, I want <goal> so that <benefit>), plus clear Acceptance Criteria, Definition of Done, Priority and an initial size estimate.
+This file contains the broader user-story backlog for the SuperLottomatch project. It includes features that are planned, aspirational, or were discussed during the course project, not only features that are already implemented in the repository.
+
+For the current implementation state, use `README.md`, `docs/ARCHITECTURE.md`, `docs/API.md`, and `docs/TESTING.md`.
 
 ---
 

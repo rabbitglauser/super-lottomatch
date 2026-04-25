@@ -6,16 +6,16 @@ This is the umbrella doc for UI-related conventions. For the full component orga
 
 ## Audience
 
-Primary users are **aged 40+, German-speaking, and non-technical**. The UI must favour:
+Primary users are still expected to be **aged 40+, German-speaking, and often non-technical**. The UI should favour:
 
-- Large tap targets and readable type (`h-20` inputs, `text-2xl` body, `rounded-3xl` corners — current baseline).
+- Large tap targets and readable type where the flow is form-heavy.
 - High contrast and semantic colours, not decorative ones.
 - Minimal steps for the common flows (registration, check-in, draw).
 - Clear error messages in plain language.
 
 ## Component organisation
 
-Components follow **Atomic Design** (atoms → molecules → organisms → templates → pages). Full rules, folder layout, and the current-state → target-state mapping for `components/Login/` are in [`ATOMIC-DESIGN.md`](ATOMIC-DESIGN.md).
+Components follow **Atomic Design** (atoms → molecules → organisms → templates → pages). Full rules and the current folder layout are in [`ATOMIC-DESIGN.md`](ATOMIC-DESIGN.md).
 
 Two Claude skills enforce the convention:
 
@@ -24,8 +24,8 @@ Two Claude skills enforce the convention:
 
 ## Styling
 
-The Tailwind v4 theme lives in `frontend/src/app/globals.css`. Components must use the semantic tokens (`text-brand`, `bg-input-bg`, `text-heading`, etc.) — **never hard-code hex values** in className strings. New colours require a new token in `globals.css` first.
+The Tailwind v4 theme lives in `frontend/src/app/globals.css`. Prefer the semantic tokens (`text-brand`, `bg-input-bg`, `text-heading`, etc.) for new work. Some existing high-fidelity pages still contain direct palette values, so treat token usage as the default direction rather than an already-complete cleanup.
 
 ## Mockups
 
-Early mockups and screenshots live under `docs/ui/` and `docs/screenshots/`.
+Early mockups and design references currently live under `docs/ui/`.

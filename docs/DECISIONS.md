@@ -1,9 +1,11 @@
 # Architecture Decision Records
 
-**Date:** 2026-04-22 (last updated)
+**Date:** 2026-04-25 (last updated)
 **Status:** In Development
 
-This document records the critical architectural decisions made during the development of SuperLottomatch. Every choice reflects an evaluation of trade-offs between developer velocity, user experience, and system reliability within the constraints of a 5-week school project (GIBZ M426).
+This document records the major architectural decisions and target-state decisions made during the development of SuperLottomatch.
+
+Important: some ADRs describe the intended direction of the school project rather than features that are fully implemented in the current repository. When the live repo diverges, the "Current repo note" beneath the ADR is the source of truth.
 
 ---
 
@@ -66,7 +68,10 @@ Use Python 3.12+ with FastAPI, SQLAlchemy 2.0 as ORM, and Pydantic v2 for reques
 The application stores guest addresses, event data, attendance records, and raffle history. The data is clearly relational: guests attend events, draws reference guests and events. The dataset is small (hundreds of guests, not thousands). The team needed a database that is reliable, well-documented, and easy to set up.
 
 **Decision:**
-Use MySQL 8.4 as the relational database, accessed via SQLAlchemy ORM. Schema migrations are managed with Alembic.
+Use MySQL 8.4 as the relational database, accessed via SQLAlchemy ORM.
+
+**Current repo note:**
+The repository currently bootstraps MySQL from `database/init/init.sql`. Alembic or another migration tool is not configured yet.
 
 **Alternatives Considered:**
 - **PostgreSQL:** Equally capable, but MySQL is more commonly taught at GIBZ and has broader free-tier hosting availability.
@@ -79,7 +84,7 @@ Use MySQL 8.4 as the relational database, accessed via SQLAlchemy ORM. Schema mi
 - (+) Available on most free hosting platforms (PlanetScale, Railway)
 - (+) SQLAlchemy abstracts MySQL-specific quirks
 - (-) Requires a running database server (unlike SQLite)
-- (-) Schema migrations need tooling (Alembic)
+- (-) Schema migrations still need dedicated tooling if the schema grows beyond the current bootstrap SQL
 
 ---
 
@@ -115,7 +120,10 @@ At the event, club members scan the QR code using the admin dashboard's camera-b
 The admin dashboard must be protected so only club members can access guest data, perform check-ins, and run the raffle. However, the customer (STV Ennetbürgen) has no IT knowledge and the system must be immediately usable. A full user management system with individual accounts, password resets, and role-based access is overkill for a sports club with ~10 active members.
 
 **Decision:**
-Use a single shared password for admin access, set via environment variable. On login, the backend issues a JWT token valid for 24 hours (covering one full event day). No user registration, no email verification, no password reset flow.
+Keep authentication intentionally simple for the school-project scope and avoid full user management complexity.
+
+**Current repo note:**
+The implemented backend currently uses a minimal email/password login against the MySQL `users` table and returns basic user data. Shared-password auth and JWT issuance are not implemented in the current code.
 
 **Alternatives Considered:**
 - **Individual user accounts:** More secure and auditable, but adds significant development time for registration, password reset, and user management — none of which the customer would maintain.
@@ -125,10 +133,10 @@ Use a single shared password for admin access, set via environment variable. On 
 **Consequences:**
 - (+) Dead simple to set up and explain to the customer
 - (+) No user management overhead
-- (+) JWT tokens are stateless, no session storage needed
-- (+) 24-hour expiry aligns with event duration
+- (+) A deliberately simple auth setup keeps onboarding manageable for club members
+- (+) Minimal auth complexity keeps the school-project scope under control
 - (-) No audit trail of which club member performed which action
-- (-) Shared password means if it leaks, all admin access is compromised
+- (-) Centralized or overly simple credentials reduce auditability and increase blast radius if leaked
 - (-) Not suitable for production beyond the club's internal use — acceptable for this scope
 
 ---
@@ -141,7 +149,7 @@ Use a single shared password for admin access, set via environment variable. On 
 The project has two distinct codebases (Next.js frontend and FastAPI backend) that need to be developed, tested, and deployed independently. The team considered separate repositories but decided the overhead of managing multiple repos, cross-repo CI triggers, and separate issue tracking was not justified for a 5-week school project with 4 people.
 
 **Decision:**
-Use a monorepo with top-level directories: `/frontend` (Next.js app) and `/backend` (FastAPI app). Each has its own dependency management (`package.json` / `requirements.txt`), test suite, and Dockerfile. The CI pipeline runs both test suites. Documentation lives in `/docs` at the root.
+Use a monorepo with top-level directories: `/frontend` (Next.js app) and `/backend` (FastAPI app). Each has its own dependency management, Dockerfile, and validation commands. Documentation lives in `/docs` at the root.
 
 ```
 super-lottomatch/
@@ -149,7 +157,7 @@ super-lottomatch/
 ├── docker-compose.yml # Local development environment
 ├── frontend/          # Next.js + React + TypeScript + Tailwind
 ├── backend/           # Python + FastAPI + SQLAlchemy
-├── db/init/           # MySQL init scripts
+├── database/init/     # MySQL init scripts
 ├── docs/              # Project documentation
 └── .claude/           # Claude Code configuration
 ```
@@ -248,7 +256,7 @@ Navigation items are defined as a constant array (`NAV_ITEMS` in `lib/constants.
 - (+) Nested layout means login page stays separate with its own layout
 - (+) Navigation config is data-driven — adding a new section is one line in `constants.ts`
 - (+) Active state highlighting gives clear orientation
-- (-) Fixed 256px sidebar width reduces content area on smaller screens (mobile responsive not yet implemented)
+- (-) Fixed desktop-oriented sidebar still makes the dashboard primarily a desktop-first experience, even though individual pages now include responsive layouts
 
 ---
 
@@ -262,6 +270,7 @@ API base URLs and navigation item definitions were scattered across individual c
 **Decision:**
 Extract shared constants into `frontend/src/lib/constants.ts`:
 - `API_BASE_URL` — reads from `NEXT_PUBLIC_API_URL` env var with `http://localhost:8000` fallback
+- `MAPBOX_TOKEN` — reads from `NEXT_PUBLIC_MAPBOX_TOKEN`
 - `NAV_ITEMS` — typed array of sidebar navigation entries (href, icon, label)
 
 Components import from this single source of truth.

@@ -1,7 +1,7 @@
 # Project Scope — SuperLottomatch
 
-**Date:** 2026-06-04
-**Status:** In Development
+**Date:** 2026-04-25
+**Status:** Archived planning scope
 
 **Module:** M426 (GIBZ)  
 **Team:** Sammy (PO), Amarah (SM), Benji (Dev), Oddy (Dev)  
@@ -9,6 +9,14 @@
 **Client:** STV Ennetbürgen
 
 ---
+
+> This file captures the original project scope and backlog intent.
+> It is not the source of truth for what is already implemented in the repository today.
+>
+> Current implementation highlights:
+> - dashboard routes for events, guests, check-in, prizes, analytics, and settings are present in the frontend with mock data
+> - the backend currently exposes only `GET /` and `POST /auth/login`
+> - QR scanning, AI chatbot features, and automated notification flows are not implemented in the current backend
 
 ## Project Goal
 

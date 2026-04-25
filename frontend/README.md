@@ -1,42 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend — SuperLottomatch
 
-## Getting Started
+This package contains the Next.js frontend for SuperLottomatch.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- lucide-react
+- recharts
+- shadcn/ui source components in `src/components/ui`
+
+## Current routes
+
+Public:
+
+- `/`
+- `/login`
+- `/mobile`
+- `/datenschutz`
+- `/impressum`
+
+Dashboard:
+
+- `/dashboard`
+- `/dashboard/events`
+- `/dashboard/guests`
+- `/dashboard/guests/importieren`
+- `/dashboard/check-in`
+- `/dashboard/prizes`
+- `/dashboard/data`
+- `/dashboard/settings`
+
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Optional environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_MAPBOX_TOKEN=
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Quality checks
 
-## Learn More
+```bash
+npm run lint -- src
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Naming conventions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Frontend Naming
-
-- `Desktop*` components are the current desktop-only implementation.
-- Unprefixed `atoms`, `ui`, and shared utility modules are intended to stay reusable across platforms.
-- Future mobile-specific UI should use a `Mobile*` prefix instead of mixing mobile code into existing desktop component names.
+- `Desktop*` components are the main admin/dashboard implementation.
+- `Mobile*` components are reserved for dedicated mobile experiences.
+- Shared primitives live under `src/components/atoms`, `src/components/molecules`, `src/components/templates`, and `src/components/ui`.
+- `PageReveal` provides the shared entrance animation used across dashboard pages.

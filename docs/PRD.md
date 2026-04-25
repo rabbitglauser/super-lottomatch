@@ -2,9 +2,30 @@
 ## System Specification v1.1
 
 **Date:** 2026-04-08  
-**Status:** In Development  
+**Status:** Archived planning snapshot
 **Team Size:** 4  
 **Timeline:** 5 weeks (GIBZ M426)
+
+> This document preserves the original project target state and course planning.
+> It does **not** describe the repository's exact current implementation anymore.
+>
+> Current source-of-truth docs:
+> - `README.md`
+> - `docs/ARCHITECTURE.md`
+> - `docs/API.md`
+> - `docs/DATABASE.md`
+> - `docs/TESTING.md`
+
+## Current implementation snapshot
+
+As of 2026-04-25, the repository currently contains:
+
+- a Next.js frontend with public routes (`/`, `/login`, `/mobile`, legal pages)
+- a dashboard shell plus implemented mock-data pages for events, guests, guest import, check-in, prizes, data, and settings
+- a FastAPI backend with `GET /` and `POST /auth/login`
+- a MySQL bootstrap SQL file that currently seeds only a `users` table
+
+Treat the remaining sections below as the intended/target product specification, not the live repo contract.
 
 ---
 

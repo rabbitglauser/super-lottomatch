@@ -1,6 +1,6 @@
 # Contributing to SuperLottomatch
 
-**Date:** 2026-06-04
+**Date:** 2026-04-25
 **Status:** Ratified
 
 ## Branch Rules
@@ -58,7 +58,9 @@ Keep commits small and focused — one logical change per commit.
 
 4. **Open a pull request** against `main` on GitHub.
 
-5. **Wait for CI to pass.** All tests must be green and coverage must stay above 75%.
+5. **Wait for CI to pass.** The current pipeline runs:
+   - frontend: `npm run lint -- src` and `npm run build`
+   - backend: `python3 -m ruff check .` and `python3 -m pytest`
 
 6. **Get at least one review** from a team member before merging.
 
@@ -71,4 +73,5 @@ Keep commits small and focused — one logical change per commit.
 - Follow clean code principles — meaningful names, small functions, no dead code
 - Frontend: use TypeScript strictly (no `any`), follow Tailwind conventions
 - Backend: use type hints, Pydantic schemas for all request/response models
-- Write tests for new functionality before or alongside the implementation
+- Write or update tests when backend behaviour changes
+- When updating docs, prefer documenting the current repo state and label target-state planning docs clearly when they intentionally describe future scope

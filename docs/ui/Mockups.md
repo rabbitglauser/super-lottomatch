@@ -1,5 +1,8 @@
 # Mockups Documentation
 
+> These mockups cover both implemented screens and planned screens.
+> The current codebase only implements part of this design set, so treat this file as design reference rather than a 1:1 map of live routes or completed flows.
+
 ## Purpose
 
 This document describes the UI mockups for **SuperLottomatch** and links to the design files used for review and frontend planning.

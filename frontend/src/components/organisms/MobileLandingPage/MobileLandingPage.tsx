@@ -1,45 +1,164 @@
 import Link from "next/link";
-import { ArrowLeft, Monitor, Smartphone } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  Bell,
+  Calendar,
+  Check,
+  CircleUser,
+  QrCode,
+  Search,
+  UserPlus,
+} from "lucide-react";
 
 export default function MobileLandingPage() {
   return (
-    <main className="min-h-dvh bg-page-dashboard px-6 py-8 text-charcoal sm:px-8 lg:px-10">
-      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-3xl items-center justify-center">
-        <section className="w-full rounded-[2rem] bg-[rgba(255,255,255,0.88)] p-7 text-center shadow-[0_24px_50px_rgba(42,23,23,0.08)] ring-1 ring-white/70 backdrop-blur-sm sm:p-10">
-          <div className="mx-auto flex size-16 items-center justify-center rounded-[1.4rem] bg-[#fde6e6] text-accent-red shadow-[0_18px_30px_rgba(223,38,52,0.12)]">
-            <Smartphone className="size-7" strokeWidth={2} />
+    <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
+      <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
+        <header className="flex items-center justify-between border-b border-[#f0e1e3] bg-white px-6 py-5">
+          <h1 className="text-xl font-bold">Home</h1>
+
+          <div className="flex items-center gap-4">
+            <Bell size={22} className="text-[#5b484b]" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f8dfe2]">
+              <CircleUser size={22} className="text-[#5b484b]" />
+            </div>
+          </div>
+        </header>
+
+        <section className="flex-1 px-6 py-8 pb-28">
+          <div className="rounded-3xl bg-[#f8eded] p-8 text-center">
+            <p className="text-xs tracking-[0.3em] text-[#6f5a5d]">
+              CHECK-INS HEUTE
+            </p>
+
+            <p className="mt-3 text-6xl font-extrabold text-[#e52535]">25</p>
+
+            <div className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#e52535]">
+              <span className="h-2 w-2 rounded-full bg-[#e52535]" />
+              LIVE STATUS
+            </div>
           </div>
 
-          <p className="mt-6 text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-accent-red/80">
-            Mobile Entry
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
-            Die mobile Version ist in Vorbereitung
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-muted-warm sm:text-base">
-            Dieser Bereich ist für die kommende mobile Erfahrung von
-            SuperLottomatch reserviert. Bis dahin steht Ihnen die Desktop-Version
-            mit dem vollständigen Event-Workflow zur Verfügung.
-          </p>
+          <div className="mt-8 space-y-4">
+            <Link
+              href="/mobile/scanner"
+              className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-[#e52535] to-[#b80018] p-6 text-white shadow-xl shadow-red-200"
+            >
+              <div>
+                <h2 className="text-xl font-bold">QR-Code scannen</h2>
+                <p className="mt-1 text-sm text-white/80">
+                  Tickets automatisch erfassen
+                </p>
+              </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/"
-              className="inline-flex h-[54px] items-center justify-center gap-2 rounded-[1.1rem] border border-[#edd4d4] bg-white px-5 text-sm font-semibold text-charcoal transition hover:-translate-y-0.5 hover:shadow-[0_18px_30px_rgba(42,23,23,0.08)]"
-            >
-              <ArrowLeft className="size-4.5" strokeWidth={2} />
-              Zur Startseite
+              <QrCode size={34} />
             </Link>
+
             <Link
-              href="/login"
-              className="inline-flex h-[54px] items-center justify-center gap-2 rounded-[1.1rem] bg-gradient-to-r from-[#ef3543] to-[#b90f1d] px-5 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(220,31,45,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_42px_rgba(220,31,45,0.28)]"
+              href="/mobile/search"
+              className="flex items-center justify-between rounded-2xl border border-[#f0e1e3] bg-white p-6 shadow-sm"
             >
-              <Monitor className="size-4.5" strokeWidth={2} />
-              Zur Desktop-Version
+              <div>
+                <h2 className="text-xl font-bold">Manuelle Suche</h2>
+                <p className="mt-1 text-sm text-[#6f5a5d]">
+                  Gästeliste durchsuchen
+                </p>
+              </div>
+
+              <Search size={32} className="text-[#231f20]" />
             </Link>
+
+            <Link
+              href="/mobile/register"
+              className="flex items-center justify-between rounded-2xl border border-[#f0e1e3] bg-white p-6 shadow-sm"
+            >
+              <div>
+                <h2 className="text-xl font-bold">Neuer Gast registrieren</h2>
+                <p className="mt-1 text-sm text-[#6f5a5d]">
+                  Vor-Ort Anmeldung
+                </p>
+              </div>
+
+              <UserPlus size={32} className="text-[#231f20]" />
+            </Link>
+          </div>
+
+          <div className="mt-8">
+            <p className="mb-4 text-xs tracking-[0.3em] text-[#6f5a5d]">
+              LETZTE AKTIVITÄTEN
+            </p>
+
+            <div className="space-y-3">
+              <ActivityItem
+                name="Forster, Benjamin"
+                time="Check-in vor 2 Min."
+                code="VIP-G12"
+              />
+
+              <ActivityItem
+                name="Warren, Amarah"
+                time="Check-in vor 5 Min."
+                code="REG-A04"
+              />
+            </div>
           </div>
         </section>
+
+        <nav className="fixed bottom-0 left-1/2 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-4 border-t border-[#f0e1e3] bg-white px-3 py-3">
+          <BottomNavItem active icon={<Calendar size={21} />} label="HEUTE" />
+          <BottomNavItem icon={<QrCode size={21} />} label="CHECK-IN" />
+          <BottomNavItem icon={<Search size={21} />} label="SUCHEN" />
+          <BottomNavItem icon={<UserPlus size={21} />} label="NEUER GAST" />
+        </nav>
       </div>
     </main>
+  );
+}
+
+function ActivityItem({
+  name,
+  time,
+  code,
+}: {
+  name: string;
+  time: string;
+  code: string;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-[#fff4f5] p-4">
+      <div className="flex items-center gap-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffdfe3] text-[#e52535]">
+          <Check size={20} />
+        </div>
+
+        <div>
+          <p className="font-bold">{name}</p>
+          <p className="text-sm text-[#6f5a5d]">{time}</p>
+        </div>
+      </div>
+
+      <p className="text-xs text-[#6f5a5d]">{code}</p>
+    </div>
+  );
+}
+
+function BottomNavItem({
+  icon,
+  label,
+  active = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center rounded-2xl px-2 py-2 text-center text-[11px] font-bold ${
+        active ? "bg-[#ffe8eb] text-[#e52535]" : "text-[#9b8b8d]"
+      }`}
+    >
+      {icon}
+      <span className="mt-1">{label}</span>
+    </div>
   );
 }

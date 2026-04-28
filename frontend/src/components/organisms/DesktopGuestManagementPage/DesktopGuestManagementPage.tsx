@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
+  Check,
   ChevronDown,
   MoreVertical,
   Search,
@@ -189,24 +190,67 @@ function ActionButton({
   );
 }
 
-function MarketingToggle({ active }: { active: boolean }) {
+function MarketingToggle({
+  active,
+  label,
+  onToggle,
+}: {
+  active: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
   return (
     <button
       type="button"
-      aria-pressed={active}
+      role="switch"
+      aria-checked={active}
+      aria-label={label}
+      onClick={onToggle}
       className={cn(
-        "inline-flex h-8 w-14 shrink-0 rounded-full p-1 transition",
+        "group relative inline-flex h-8 w-14 shrink-0 overflow-hidden rounded-full p-1 transition-all duration-500 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-red/20 active:scale-95",
         active
-          ? "bg-gradient-to-r from-[#ef3543] to-[#c31524] shadow-[0_12px_26px_rgba(220,31,45,0.22)]"
-          : "bg-[#d9cdcc]",
+          ? "bg-[linear-gradient(135deg,#ff6470_0%,#df2634_48%,#a80f1b_100%)] shadow-[0_12px_26px_rgba(220,31,45,0.28)]"
+          : "bg-[#d9cdcc] shadow-inner hover:bg-[#cec0bf]",
       )}
     >
       <span
+        aria-hidden="true"
         className={cn(
-          "size-6 rounded-full bg-white shadow-[0_4px_10px_rgba(31,29,29,0.14)] transition-transform duration-200",
-          active ? "translate-x-6" : "translate-x-0",
+          "pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_74%_50%,rgba(255,255,255,0.45),transparent_34%)] transition-opacity duration-500",
+          active ? "opacity-100" : "opacity-0",
         )}
       />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -inset-y-4 -left-7 w-5 rotate-12 bg-white/45 blur-[1px] transition-all duration-700 ease-out",
+          active ? "translate-x-24 opacity-80" : "translate-x-0 opacity-0",
+        )}
+      />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white/35 blur-md transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          active ? "translate-x-6 opacity-90" : "translate-x-0 opacity-0",
+        )}
+      />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "relative z-10 flex size-6 items-center justify-center rounded-full bg-white text-accent-red shadow-[0_6px_14px_rgba(31,29,29,0.16)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+          active
+            ? "translate-x-6 rotate-[360deg]"
+            : "translate-x-0 rotate-0 text-transparent",
+        )}
+      >
+        <Check
+          className={cn(
+            "size-3.5 transition-all duration-300",
+            active ? "scale-100 opacity-100" : "scale-50 opacity-0",
+          )}
+          strokeWidth={3}
+        />
+      </span>
     </button>
   );
 }
@@ -228,7 +272,17 @@ function MobileField({
   );
 }
 
-function GuestRow({ guest }: { guest: GuestRecord }) {
+function GuestRow({
+  guest,
+  onToggleMarketing,
+}: {
+  guest: GuestRecord;
+  onToggleMarketing: (guestId: string) => void;
+}) {
+  const marketingLabel = `${guest.name} Marketing-Einwilligung ${
+    guest.marketingActive ? "deaktivieren" : "aktivieren"
+  }`;
+
   return (
     <article className="rounded-[1.75rem] bg-white px-5 py-5 shadow-[0_18px_36px_rgba(42,23,23,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_28px_52px_rgba(42,23,23,0.1)] sm:px-6 lg:min-h-[92px] lg:px-7">
       <div className="flex items-start justify-between gap-4 lg:hidden">
@@ -275,7 +329,11 @@ function GuestRow({ guest }: { guest: GuestRecord }) {
         </MobileField>
 
         <MobileField label="Marketing">
-          <MarketingToggle active={guest.marketingActive} />
+          <MarketingToggle
+            active={guest.marketingActive}
+            label={marketingLabel}
+            onToggle={() => onToggleMarketing(guest.id)}
+          />
         </MobileField>
       </div>
 
@@ -306,7 +364,11 @@ function GuestRow({ guest }: { guest: GuestRecord }) {
 
         <p className="text-sm font-medium text-charcoal">{guest.city}</p>
         <p className="text-sm font-medium text-charcoal">{guest.lastParticipation}</p>
-        <MarketingToggle active={guest.marketingActive} />
+        <MarketingToggle
+          active={guest.marketingActive}
+          label={marketingLabel}
+          onToggle={() => onToggleMarketing(guest.id)}
+        />
 
         <button
           type="button"
@@ -322,6 +384,9 @@ function GuestRow({ guest }: { guest: GuestRecord }) {
 
 export default function DesktopGuestManagementPage() {
   const [showFilters, setShowFilters] = useState(false);
+  const [guests, setGuests] = useState<GuestRecord[]>(() =>
+    GUESTS.map((guest) => ({ ...guest })),
+  );
   const [filters, setFilters] = useState<GuestFilters>({
     ...defaultGuestFilters,
   });
@@ -339,6 +404,16 @@ export default function DesktopGuestManagementPage() {
   const handleResetFilters = () => {
     setFilters({ ...defaultGuestFilters });
     setShowFilters(false);
+  };
+
+  const handleToggleMarketing = (guestId: string) => {
+    setGuests((currentGuests) =>
+      currentGuests.map((guest) =>
+        guest.id === guestId
+          ? { ...guest, marketingActive: !guest.marketingActive }
+          : guest,
+      ),
+    );
   };
 
   return (
@@ -432,14 +507,17 @@ export default function DesktopGuestManagementPage() {
           </PageReveal>
 
           <div className="space-y-4">
-            {GUESTS.map((guest, index) => (
+            {guests.map((guest, index) => (
               <PageReveal
                 key={guest.id}
                 delay={380 + index * 60}
                 variant="up"
                 className="w-full"
               >
-                <GuestRow guest={guest} />
+                <GuestRow
+                  guest={guest}
+                  onToggleMarketing={handleToggleMarketing}
+                />
               </PageReveal>
             ))}
           </div>

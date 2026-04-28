@@ -14,7 +14,7 @@ Important: some ADRs describe the intended direction of the school project rathe
 **Status:** Accepted
 
 **Context:**
-The application needs two frontends: a public guest registration app and a protected admin dashboard. Both must work cross-platform, be mobile-friendly, and serve an audience where the majority is aged 40+. The team has 5 weeks and 2 developers, so developer velocity is critical. The guest app must load fast on older smartphones.
+The application needs two frontends: a public guest registration app and a protected admin dashboard. Both must work cross-platform, be mobile-friendly, and serve an audience where the majority is aged 40+. The team has 5 weeks and 3 developers, so developer velocity is critical. The guest app must load fast on older smartphones.
 
 **Decision:**
 Use Next.js 16 (App Router) with React 19, TypeScript 5, and Tailwind CSS v4. The guest app and admin dashboard are separate route groups within the same Next.js project.
@@ -146,7 +146,7 @@ The implemented backend currently uses a minimal email/password login against th
 **Status:** Accepted
 
 **Context:**
-The project has two distinct codebases (Next.js frontend and FastAPI backend) that need to be developed, tested, and deployed independently. The team considered separate repositories but decided the overhead of managing multiple repos, cross-repo CI triggers, and separate issue tracking was not justified for a 5-week school project with 4 people.
+The project has two distinct codebases (Next.js frontend and FastAPI backend) that need to be developed, tested, and deployed independently. The team considered separate repositories but decided the overhead of managing multiple repos, cross-repo CI triggers, and separate issue tracking was not justified for a 5-week school project with 5 people.
 
 **Decision:**
 Use a monorepo with top-level directories: `/frontend` (Next.js app) and `/backend` (FastAPI app). Each has its own dependency management, Dockerfile, and validation commands. Documentation lives in `/docs` at the root.

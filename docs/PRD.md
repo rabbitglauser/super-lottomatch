@@ -3,7 +3,7 @@
 
 **Date:** 2026-04-08  
 **Status:** Archived planning snapshot
-**Team Size:** 4  
+**Team Size:** 5  
 **Timeline:** 5 weeks (GIBZ M426)
 
 > This document preserves the original project target state and course planning.
@@ -64,7 +64,7 @@ Key facts:
 - **Target demographic:** majority aged 40+
 - **Main marketing channel:** postal mail
 - **OS-independent:** browser-based solution
-- **Team:** 4 members working in Scrum over 5 weeks
+- **Team:** 5 members working in Scrum over 5 weeks
 
 The database design supports:
 

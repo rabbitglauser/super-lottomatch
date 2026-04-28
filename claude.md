@@ -7,7 +7,7 @@ This document contains critical information about working with this codebase. Fo
 SuperLottomatch digitizes the annual Lottomatch raffle for STV Ennetbürgen. It replaces manual paper slips and Excel spreadsheets with a web-based system for guest registration, QR-code check-in, and automated raffle draws.
 
 - **Module:** M426 — Software mit agilen Methoden entwickeln (GIBZ Zug)
-- **Team:** Sammy (PO), Amarah (SM), Benji (Dev), Oddy (Dev)
+- **Team:** Sammy (PO), Amarah (SM), Benji (Dev), Oddy (Dev), Florian (Dev)
 - **Client:** STV Ennetbürgen
 - **Target users:** Majority aged 40+, German-speaking
 

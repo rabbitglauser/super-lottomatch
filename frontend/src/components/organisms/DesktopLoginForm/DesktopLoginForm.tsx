@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import FormField from "@/components/molecules/FormField";
-import { API_BASE_URL } from "@/lib/constants";
+import { supabase } from "@/lib/supabase";
 
 export default function DesktopLoginForm() {
   const router = useRouter();
@@ -21,13 +21,12 @@ export default function DesktopLoginForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (!response.ok) {
+      if (signInError) {
         setError("Ungültige Zugangsdaten");
         return;
       }

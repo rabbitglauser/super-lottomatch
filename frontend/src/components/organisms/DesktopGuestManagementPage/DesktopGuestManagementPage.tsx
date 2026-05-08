@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -17,7 +17,11 @@ import {
 
 import PageReveal from "@/components/atoms/PageReveal";
 import { Button } from "@/components/ui/button";
-import { GUESTS, type GuestRecord } from "@/lib/guest-management-mock";
+import {
+  fetchGuests,
+  toggleGuestMarketing,
+  type GuestRecord,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const desktopGridClass =
@@ -384,12 +388,51 @@ function GuestRow({
 
 export default function DesktopGuestManagementPage() {
   const [showFilters, setShowFilters] = useState(false);
-  const [guests, setGuests] = useState<GuestRecord[]>(() =>
-    GUESTS.map((guest) => ({ ...guest })),
-  );
+  const [guests, setGuests] = useState<GuestRecord[]>([]);
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<GuestFilters>({
     ...defaultGuestFilters,
   });
+
+  useEffect(() => {
+    fetchGuests()
+      .then(setGuests)
+      .catch(() => setError("Gäste konnten nicht geladen werden."));
+  }, []);
+
+  const visibleGuests = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return guests.filter((guest) => {
+      if (filters.location !== "Alle Standorte" && guest.city !== filters.location) {
+        return false;
+      }
+
+      if (
+        filters.marketingConsent === "Eingewilligt" &&
+        !guest.marketingActive
+      ) {
+        return false;
+      }
+
+      if (
+        filters.marketingConsent === "Nicht eingewilligt" &&
+        guest.marketingActive
+      ) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [guest.name, guest.email, guest.code, guest.city]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
+  }, [guests, filters, query]);
 
   const handleFilterChange = <K extends keyof GuestFilters>(
     key: K,
@@ -414,6 +457,16 @@ export default function DesktopGuestManagementPage() {
           : guest,
       ),
     );
+    toggleGuestMarketing(guestId).catch(() => {
+      setGuests((currentGuests) =>
+        currentGuests.map((guest) =>
+          guest.id === guestId
+            ? { ...guest, marketingActive: !guest.marketingActive }
+            : guest,
+        ),
+      );
+      setError("Marketing-Einwilligung konnte nicht gespeichert werden.");
+    });
   };
 
   return (
@@ -457,6 +510,8 @@ export default function DesktopGuestManagementPage() {
                 <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
                 <input
                   type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
                   placeholder="Gäste nach Name, Code oder Wohnort suchen..."
                   className="h-[68px] w-full rounded-[1.5rem] border border-black/[0.04] bg-white pl-14 pr-5 text-[0.97rem] text-charcoal shadow-[0_10px_24px_rgba(42,23,23,0.05)] outline-none transition placeholder:text-input-text focus:border-accent-red/15 focus:ring-4 focus:ring-accent-red/10"
                 />
@@ -489,6 +544,12 @@ export default function DesktopGuestManagementPage() {
           </section>
         </PageReveal>
 
+        {error ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-accent-red shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {error}
+          </p>
+        ) : null}
+
         <section className="mt-8">
           <PageReveal delay={320} variant="up">
             <div
@@ -507,7 +568,7 @@ export default function DesktopGuestManagementPage() {
           </PageReveal>
 
           <div className="space-y-4">
-            {guests.map((guest, index) => (
+            {visibleGuests.map((guest, index) => (
               <PageReveal
                 key={guest.id}
                 delay={380 + index * 60}
@@ -520,6 +581,11 @@ export default function DesktopGuestManagementPage() {
                 />
               </PageReveal>
             ))}
+            {visibleGuests.length === 0 ? (
+              <div className="rounded-[1.75rem] bg-white px-6 py-10 text-center text-sm text-muted-warm shadow-[0_18px_36px_rgba(42,23,23,0.06)]">
+                Keine Gäste gefunden.
+              </div>
+            ) : null}
           </div>
         </section>
       </div>

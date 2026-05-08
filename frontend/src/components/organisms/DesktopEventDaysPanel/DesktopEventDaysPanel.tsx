@@ -1,8 +1,12 @@
 import PageReveal from "@/components/atoms/PageReveal";
 import DesktopEventDayCard from "@/components/molecules/DesktopEventDayCard";
-import { EVENT_DAYS } from "@/lib/dashboard-mock";
+import type { EventDay } from "@/lib/api";
 
-export default function DesktopEventDaysPanel() {
+export default function DesktopEventDaysPanel({
+  eventDays,
+}: {
+  eventDays: EventDay[];
+}) {
   return (
     <section>
       <PageReveal delay={340} variant="right">
@@ -18,7 +22,7 @@ export default function DesktopEventDaysPanel() {
       </PageReveal>
 
       <div className="mt-4 flex flex-col gap-3">
-        {EVENT_DAYS.map((event, index) => (
+        {eventDays.map((event, index) => (
           <PageReveal
             key={`${event.month}-${event.day}`}
             delay={430 + index * 70}

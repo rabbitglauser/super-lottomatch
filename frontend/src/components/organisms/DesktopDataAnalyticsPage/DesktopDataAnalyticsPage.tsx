@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import {
@@ -43,16 +44,15 @@ import {
 } from "@/components/ui/chart";
 import PageReveal from "@/components/atoms/PageReveal";
 import {
-  analyticsPeriods,
-  analyticsSummary,
-  checkinsByDay,
-  deviceDistribution,
-  liveOverview,
-  marketingConsent,
-  participantTrend,
-  reportActions,
-  topEvents,
-} from "@/lib/data-analytics-mock";
+  fetchAnalytics,
+  type AnalyticsData,
+  type CheckinsByDayItem,
+  type DeviceDistributionItem,
+  type LiveOverviewItem,
+  type MarketingConsentSummary,
+  type ParticipantTrendPoint,
+  type TopEvent,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const swissNumberFormatter = new Intl.NumberFormat("de-CH");
@@ -95,7 +95,7 @@ const consentChartConfig = {
 } satisfies ChartConfig;
 
 const liveOverviewIcons: Record<
-  (typeof liveOverview)[number]["key"],
+  LiveOverviewItem["key"],
   LucideIcon
 > = {
   visitors: Users,
@@ -104,7 +104,7 @@ const liveOverviewIcons: Record<
 };
 
 const quickActionIcons: Record<
-  (typeof reportActions)[number]["key"],
+  AnalyticsData["reportActions"][number]["key"],
   LucideIcon
 > = {
   csv: Download,
@@ -250,7 +250,13 @@ function KpiCard({
   );
 }
 
-function ParticipantsChart({ className }: { className?: string }) {
+function ParticipantsChart({
+  className,
+  data,
+}: {
+  className?: string;
+  data: ParticipantTrendPoint[];
+}) {
   return (
     <AnalyticsCard
       title="Teilnehmerentwicklung"
@@ -265,7 +271,7 @@ function ParticipantsChart({ className }: { className?: string }) {
     >
       <ChartContainer config={lineChartConfig} className="h-[290px]">
         <AreaChart
-          data={participantTrend}
+          data={data}
           margin={{ top: 12, right: 12, bottom: 0, left: -18 }}
         >
           <defs>
@@ -338,7 +344,15 @@ function ParticipantsChart({ className }: { className?: string }) {
   );
 }
 
-function DeviceDistributionChart({ className }: { className?: string }) {
+function DeviceDistributionChart({
+  className,
+  data,
+  totalGuests,
+}: {
+  className?: string;
+  data: DeviceDistributionItem[];
+  totalGuests: number;
+}) {
   return (
     <AnalyticsCard title="Geräteverteilung" className={className}>
       <div className="relative">
@@ -356,7 +370,7 @@ function DeviceDistributionChart({ className }: { className?: string }) {
               }
             />
             <Pie
-              data={deviceDistribution}
+              data={data}
               dataKey="value"
               nameKey="label"
               innerRadius={68}
@@ -364,7 +378,7 @@ function DeviceDistributionChart({ className }: { className?: string }) {
               paddingAngle={4}
               stroke="none"
             >
-              {deviceDistribution.map((item) => (
+              {data.map((item) => (
                 <Cell key={item.key} fill={deviceColors[item.key]} />
               ))}
             </Pie>
@@ -373,14 +387,14 @@ function DeviceDistributionChart({ className }: { className?: string }) {
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-3xl font-semibold tracking-tight text-charcoal">
-            {formatSwissNumber(analyticsSummary.totalGuests)}
+            {formatSwissNumber(totalGuests)}
           </p>
           <p className="mt-1 text-sm text-muted-warm">Gesamt</p>
         </div>
       </div>
 
       <div className="mt-4 space-y-3">
-        {deviceDistribution.map((item) => (
+        {data.map((item) => (
           <div
             key={item.key}
             className="flex items-center justify-between gap-3 text-sm"
@@ -400,12 +414,18 @@ function DeviceDistributionChart({ className }: { className?: string }) {
   );
 }
 
-function CheckinsBarChart({ className }: { className?: string }) {
+function CheckinsBarChart({
+  className,
+  data,
+}: {
+  className?: string;
+  data: CheckinsByDayItem[];
+}) {
   return (
     <AnalyticsCard title="Check-ins pro Event-Tag" className={className}>
       <ChartContainer config={checkinsChartConfig} className="h-[300px]">
         <BarChart
-          data={checkinsByDay}
+          data={data}
           margin={{ top: 18, right: 10, bottom: 0, left: -18 }}
         >
           <CartesianGrid
@@ -455,7 +475,13 @@ function CheckinsBarChart({ className }: { className?: string }) {
   );
 }
 
-function TopEventsTable({ className }: { className?: string }) {
+function TopEventsTable({
+  className,
+  events,
+}: {
+  className?: string;
+  events: TopEvent[];
+}) {
   return (
     <AnalyticsCard title="Top Events" className={className}>
       <div className="-mx-2 overflow-x-auto px-2">
@@ -470,7 +496,7 @@ function TopEventsTable({ className }: { className?: string }) {
             </tr>
           </thead>
           <tbody>
-            {topEvents.map((event) => {
+            {events.map((event) => {
               const checkInRate = Math.round(
                 (event.checkIns / event.guests) * 100
               );
@@ -519,7 +545,7 @@ function TopEventsTable({ className }: { className?: string }) {
   );
 }
 
-function LiveOverviewCard() {
+function LiveOverviewCard({ items }: { items: LiveOverviewItem[] }) {
   return (
     <AnalyticsCard
       title="Live Übersicht"
@@ -531,7 +557,7 @@ function LiveOverviewCard() {
       }
     >
       <div className="space-y-3">
-        {liveOverview.map((item) => {
+        {items.map((item) => {
           const Icon = liveOverviewIcons[item.key];
 
           return (
@@ -556,7 +582,11 @@ function LiveOverviewCard() {
   );
 }
 
-function MarketingConsentCard() {
+function MarketingConsentCard({
+  marketingConsent,
+}: {
+  marketingConsent: MarketingConsentSummary;
+}) {
   const radialData = [
     {
       key: "granted",
@@ -649,8 +679,10 @@ function MarketingConsentCard() {
 
 function QuickActionsCard({
   onAction,
+  reportActions,
 }: {
   onAction: (actionLabel: string) => void;
+  reportActions: AnalyticsData["reportActions"];
 }) {
   return (
     <AnalyticsCard title="Schnellaktionen">
@@ -679,8 +711,10 @@ function QuickActionsCard({
 
 function RightAnalyticsSidebar({
   onAction,
+  data,
 }: {
   onAction: (actionLabel: string) => void;
+  data: AnalyticsData;
 }) {
   return (
     <aside className="flex flex-col gap-6 xl:sticky xl:top-8 xl:self-start">
@@ -690,20 +724,29 @@ function RightAnalyticsSidebar({
       >
         <AnalyticsSelect
           ariaLabel="Analytics Zeitraum"
-          options={analyticsPeriods}
+          options={data.analyticsPeriods}
           icon={CalendarDays}
           className="w-full"
         />
       </AnalyticsCard>
 
-      <LiveOverviewCard />
-      <MarketingConsentCard />
-      <QuickActionsCard onAction={onAction} />
+      <LiveOverviewCard items={data.liveOverview} />
+      <MarketingConsentCard marketingConsent={data.marketingConsent} />
+      <QuickActionsCard onAction={onAction} reportActions={data.reportActions} />
     </aside>
   );
 }
 
 export default function DesktopDataAnalyticsPage() {
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAnalytics()
+      .then(setAnalyticsData)
+      .catch(() => setError("Analytics-Daten konnten nicht geladen werden."));
+  }, []);
+
   const handlePlaceholderAction = (actionLabel: string) => {
     console.info(`${actionLabel} ist noch nicht verbunden.`);
   };
@@ -747,11 +790,25 @@ export default function DesktopDataAnalyticsPage() {
           </PageReveal>
         </header>
 
+        {error ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-accent-red shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {error}
+          </p>
+        ) : null}
+
+        {!analyticsData ? (
+          <p className="mt-8 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-charcoal shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            Daten werden geladen...
+          </p>
+        ) : null}
+
+        {analyticsData ? (
+          <>
         <section className="mt-8 grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
           <PageReveal delay={200} variant="up" className="h-full w-full">
             <KpiCard
               label="Gesamt Gäste"
-              value={formatSwissNumber(analyticsSummary.totalGuests)}
+              value={formatSwissNumber(analyticsData.summary.totalGuests)}
               delta="+8.2%"
               subtitle="vs. letzte 30 Tage"
               icon={Users}
@@ -760,22 +817,22 @@ export default function DesktopDataAnalyticsPage() {
           <PageReveal delay={280} variant="up" className="h-full w-full">
             <KpiCard
               label="Check-in Rate"
-              value={`${analyticsSummary.checkInRate}%`}
-              progress={analyticsSummary.checkInRate}
+              value={`${analyticsData.summary.checkInRate}%`}
+              progress={analyticsData.summary.checkInRate}
               icon={CheckCircle2}
             />
           </PageReveal>
           <PageReveal delay={360} variant="up" className="h-full w-full">
             <KpiCard
               label="Aktive Events"
-              value={String(analyticsSummary.activeEvents)}
+              value={String(analyticsData.summary.activeEvents)}
               icon={CalendarDays}
             />
           </PageReveal>
           <PageReveal delay={440} variant="up" className="h-full w-full">
             <KpiCard
               label="Verlosungen Abgeschlossen"
-              value={String(analyticsSummary.completedDrawings)}
+              value={String(analyticsData.summary.completedDrawings)}
               icon={Trophy}
             />
           </PageReveal>
@@ -784,23 +841,40 @@ export default function DesktopDataAnalyticsPage() {
         <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_340px]">
           <div className="grid gap-6 xl:grid-cols-3">
             <PageReveal delay={520} variant="left" className="h-full w-full xl:col-span-2">
-              <ParticipantsChart className="xl:col-span-2" />
+              <ParticipantsChart
+                className="xl:col-span-2"
+                data={analyticsData.participantTrend}
+              />
             </PageReveal>
             <PageReveal delay={600} variant="up" className="h-full w-full">
-              <DeviceDistributionChart />
+              <DeviceDistributionChart
+                data={analyticsData.deviceDistribution}
+                totalGuests={analyticsData.summary.totalGuests}
+              />
             </PageReveal>
             <PageReveal delay={680} variant="left" className="h-full w-full xl:col-span-2">
-              <CheckinsBarChart className="xl:col-span-2" />
+              <CheckinsBarChart
+                className="xl:col-span-2"
+                data={analyticsData.checkinsByDay}
+              />
             </PageReveal>
             <PageReveal delay={760} variant="up" className="h-full w-full xl:col-span-3">
-              <TopEventsTable className="xl:col-span-3" />
+              <TopEventsTable
+                className="xl:col-span-3"
+                events={analyticsData.topEvents}
+              />
             </PageReveal>
           </div>
 
           <PageReveal delay={620} variant="right" className="h-full w-full">
-            <RightAnalyticsSidebar onAction={handlePlaceholderAction} />
+            <RightAnalyticsSidebar
+              onAction={handlePlaceholderAction}
+              data={analyticsData}
+            />
           </PageReveal>
         </div>
+          </>
+        ) : null}
       </div>
     </div>
   );

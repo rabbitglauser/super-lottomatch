@@ -1,19 +1,23 @@
 "use client";
 
-import { LOCATION } from "@/lib/dashboard-mock";
+import type { LocationSummary } from "@/lib/api";
 
 import DesktopLocationMap from "./DesktopLocationMap";
 
-export default function DesktopLocationCard() {
+export default function DesktopLocationCard({
+  location,
+}: {
+  location: LocationSummary;
+}) {
   return (
     <section className="overflow-hidden rounded-[1.75rem] bg-accent-red-soft/60 p-5 shadow-[0_12px_30px_rgba(31,29,29,0.08)] ring-1 ring-black/5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-muted-warm uppercase">
-            {LOCATION.label}
+            {location.label}
           </p>
           <h3 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-charcoal">
-            {LOCATION.locationLabel}
+            {location.locationLabel}
           </h3>
           <p className="mt-2 text-sm leading-6 text-muted-warm">
             Interaktive Kartenansicht mit Zoom und Pan direkt im Dashboard.
@@ -23,9 +27,9 @@ export default function DesktopLocationCard() {
 
       <div className="relative mt-5 h-[23rem] overflow-hidden rounded-[1.45rem] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         <DesktopLocationMap
-          lat={LOCATION.coordinates.lat}
-          lng={LOCATION.coordinates.lng}
-          locationLabel={LOCATION.locationLabel}
+          lat={location.coordinates.lat}
+          lng={location.coordinates.lng}
+          locationLabel={location.locationLabel}
           description="Scrollen zum Zoomen, ziehen zum Verschieben."
           variant="compact"
         />

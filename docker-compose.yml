@@ -11,6 +11,7 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: "true"
       NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
     depends_on:
       - backend
 
@@ -24,28 +25,24 @@ services:
       - ./backend:/app
     environment:
       DATABASE_HOST: db
-      DATABASE_NAME: ${MYSQL_DATABASE}
-      DATABASE_USER: ${MYSQL_USER}
-      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       - db
 
   db:
-    image: mysql:8.4
+    image: postgres:17
     container_name: super-lottomatch-db
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "5432:5432"
     env_file:
       - .env
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
 
 volumes:
-  mysql_data:
+  postgres_data:

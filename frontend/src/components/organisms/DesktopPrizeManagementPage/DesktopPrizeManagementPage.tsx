@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useDeferredValue,
   useMemo,
   useState,
@@ -32,142 +33,21 @@ import {
 import PageReveal from "@/components/atoms/PageReveal";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import { Button } from "@/components/ui/button";
+import {
+  fetchPrizes,
+  type PrizeCategory,
+  type PrizeData,
+  type PrizeKpi,
+  type PrizeOverview,
+  type PrizeRecord,
+  type PrizeStatus,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type PrizeCategory =
-  | "Hauptpreis"
-  | "Sport"
-  | "Gutschein"
-  | "Sachpreis"
-  | "Genuss";
-
-type PrizeStatus = "Bereit" | "Offen" | "Reserviert";
 type PrizeFilter = "all" | PrizeCategory | PrizeStatus;
 
-interface PrizeRecord {
-  id: string;
-  name: string;
-  description: string;
-  category: PrizeCategory;
-  sponsor: string;
-  value: string;
-  status: PrizeStatus;
-  icon: LucideIcon;
-}
-
-interface PrizeKpi {
-  label: string;
-  value: string;
-  subtitle: string;
-  subtitleTone: "accent" | "muted";
-  icon: LucideIcon;
-  progress?: number;
-}
-
-interface PrizeOverview {
-  currentEvent: string;
-  nextDraw: string;
-  date: string;
-  time: string;
-  drawn: number;
-  total: number;
-}
-
-const TOTAL_PRIZES = 24;
-
-const PRIZE_KPIS: PrizeKpi[] = [
-  {
-    label: "Total Preise",
-    value: "24",
-    subtitle: "+4 neu",
-    subtitleTone: "accent",
-    icon: Gift,
-  },
-  {
-    label: "Gesamtwert",
-    value: "CHF 8’450",
-    subtitle: "geschätzt",
-    subtitleTone: "muted",
-    icon: Coins,
-  },
-  {
-    label: "Hauptpreise",
-    value: "3",
-    subtitle: "Top-Kategorie",
-    subtitleTone: "muted",
-    icon: Trophy,
-  },
-  {
-    label: "Ausgelost",
-    value: "12",
-    subtitle: "50%",
-    subtitleTone: "accent",
-    icon: Target,
-    progress: 50,
-  },
-];
-
-const PRIZES: PrizeRecord[] = [
-  {
-    id: "wellness-wochenende",
-    name: "Wellness Wochenende",
-    description: "2 Nächte für zwei Personen inkl. Frühstück",
-    category: "Hauptpreis",
-    sponsor: "Hotel Alpenblick",
-    value: "CHF 1’200",
-    status: "Bereit",
-    icon: Trophy,
-  },
-  {
-    id: "e-bike-gutschein",
-    name: "E-Bike Gutschein",
-    description: "Gutschein für E-Bike Zubehör und Service",
-    category: "Sport",
-    sponsor: "BikeHub Zug",
-    value: "CHF 850",
-    status: "Bereit",
-    icon: Bike,
-  },
-  {
-    id: "restaurant-gutschein",
-    name: "Restaurant Gutschein",
-    description: "Abendessen für vier Personen",
-    category: "Gutschein",
-    sponsor: "Restaurant Seeblick",
-    value: "CHF 300",
-    status: "Offen",
-    icon: Ticket,
-  },
-  {
-    id: "kaffeemaschine",
-    name: "Kaffeemaschine",
-    description: "Premium Kaffeemaschine für Zuhause",
-    category: "Sachpreis",
-    sponsor: "Elektro Müller",
-    value: "CHF 650",
-    status: "Bereit",
-    icon: Coffee,
-  },
-  {
-    id: "weinpaket",
-    name: "Weinpaket",
-    description: "Auswahl regionaler Weine",
-    category: "Genuss",
-    sponsor: "Weingut Rigi",
-    value: "CHF 180",
-    status: "Reserviert",
-    icon: Wine,
-  },
-];
-
-const PRIZE_OVERVIEW: PrizeOverview = {
-  currentEvent: "SuperLottomatch 2026",
-  nextDraw: "Hauptverlosung",
-  date: "25. Okt",
-  time: "14:00",
-  drawn: 12,
-  total: 24,
-};
+type PrizeViewModel = PrizeRecord & { icon: LucideIcon };
+type PrizeKpiViewModel = PrizeKpi & { icon: LucideIcon };
 
 const FILTER_OPTIONS: { value: PrizeFilter; label: string }[] = [
   { value: "all", label: "Alle Kategorien" },
@@ -192,6 +72,36 @@ const statusClassNames: Record<PrizeStatus, string> = {
 
 const surfaceClassName =
   "min-w-0 rounded-[28px] border border-black/5 bg-white shadow-[0_18px_42px_rgba(116,82,82,0.08)]";
+
+const kpiIcons = [Gift, Coins, Trophy, Target] as const;
+
+function getPrizeIcon(category: PrizeCategory) {
+  if (category === "Hauptpreis") return Trophy;
+  if (category === "Sport") return Bike;
+  if (category === "Gutschein") return Ticket;
+  if (category === "Genuss") return Wine;
+  return Coffee;
+}
+
+function mapPrizeData(data: PrizeData) {
+  return {
+    ...data,
+    kpis: data.kpis.map((kpi, index) => ({
+      ...kpi,
+      icon: kpiIcons[index] ?? Gift,
+    })),
+    prizes: data.prizes.map((prize) => ({
+      ...prize,
+      icon: getPrizeIcon(prize.category),
+    })),
+    nextHighlight: data.nextHighlight
+      ? {
+          ...data.nextHighlight,
+          icon: getPrizeIcon(data.nextHighlight.category),
+        }
+      : null,
+  };
+}
 
 function closeParentMenu(event: MouseEvent<HTMLButtonElement>) {
   event.currentTarget.closest("details")?.removeAttribute("open");
@@ -235,7 +145,7 @@ function HeaderActionButton({
   );
 }
 
-function PrizeKpiCard({ kpi }: { kpi: PrizeKpi }) {
+function PrizeKpiCard({ kpi }: { kpi: PrizeKpiViewModel }) {
   const Icon = kpi.icon;
 
   return (
@@ -394,7 +304,7 @@ function PrizeDesktopRow({
   prize,
   onAction,
 }: {
-  prize: PrizeRecord;
+  prize: PrizeViewModel;
   onAction: (label: string) => void;
 }) {
   return (
@@ -432,7 +342,7 @@ function PrizeMobileCard({
   prize,
   onAction,
 }: {
-  prize: PrizeRecord;
+  prize: PrizeViewModel;
   onAction: (label: string) => void;
 }) {
   return (
@@ -486,12 +396,18 @@ function PrizeMobileCard({
   );
 }
 
-function PrizePagination({ visibleCount }: { visibleCount: number }) {
+function PrizePagination({
+  visibleCount,
+  totalCount,
+}: {
+  visibleCount: number;
+  totalCount: number;
+}) {
   const paginationItems = ["1", "2", "3", "…", "5"];
   const rangeLabel =
     visibleCount === 0
-      ? `0 von ${TOTAL_PRIZES} Preisen`
-      : `1–${visibleCount} von ${TOTAL_PRIZES} Preisen`;
+      ? `0 von ${totalCount} Preisen`
+      : `1–${visibleCount} von ${totalCount} Preisen`;
 
   return (
     <div className="mt-6 flex flex-col gap-4 border-t border-[#f0e4e4] pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -535,8 +451,10 @@ function PrizePagination({ visibleCount }: { visibleCount: number }) {
   );
 }
 
-function PrizeOverviewCard() {
-  const progress = Math.round((PRIZE_OVERVIEW.drawn / PRIZE_OVERVIEW.total) * 100);
+function PrizeOverviewCard({ overview }: { overview: PrizeOverview }) {
+  const progress = overview.total
+    ? Math.round((overview.drawn / overview.total) * 100)
+    : 0;
 
   return (
     <SurfaceCard className="p-5 sm:p-6">
@@ -553,7 +471,7 @@ function PrizeOverviewCard() {
             Aktuelles Event
           </p>
           <p className="mt-2 text-base font-semibold text-charcoal">
-            {PRIZE_OVERVIEW.currentEvent}
+            {overview.currentEvent}
           </p>
         </div>
 
@@ -562,15 +480,15 @@ function PrizeOverviewCard() {
             Nächste Verlosung
           </p>
           <p className="mt-2 text-base font-semibold text-charcoal">
-            {PRIZE_OVERVIEW.nextDraw}
+            {overview.nextDraw}
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-sm font-medium text-charcoal">
           <CalendarDays className="size-4 text-accent-red" />
-          <span>{PRIZE_OVERVIEW.date}</span>
+          <span>{overview.date}</span>
           <span className="size-1 rounded-full bg-muted-warm/60" />
-          <span>{PRIZE_OVERVIEW.time}</span>
+          <span>{overview.time}</span>
         </div>
 
         <div className="h-px bg-[#f0e4e4]" />
@@ -578,7 +496,7 @@ function PrizeOverviewCard() {
         <div>
           <div className="flex items-center justify-between gap-4 text-sm">
             <span className="text-muted-warm">
-              {PRIZE_OVERVIEW.drawn} von {PRIZE_OVERVIEW.total} Preisen ausgelost
+              {overview.drawn} von {overview.total} Preisen ausgelost
             </span>
             <span className="font-semibold text-accent-red">{progress}%</span>
           </div>
@@ -589,7 +507,7 @@ function PrizeOverviewCard() {
   );
 }
 
-function NextMainPrizeCard() {
+function NextMainPrizeCard({ prize }: { prize: PrizeViewModel | null }) {
   return (
     <section className="relative overflow-hidden rounded-[28px] border border-[#f2d7d8] bg-[#fdeaea] p-5 shadow-[0_18px_42px_rgba(116,82,82,0.08)] sm:p-6">
       <div className="relative z-10 flex items-center justify-between gap-3">
@@ -601,10 +519,10 @@ function NextMainPrizeCard() {
 
       <div className="relative z-10 mt-5">
         <p className="text-xl font-semibold tracking-tight text-charcoal">
-          Wellness Wochenende
+          {prize?.name ?? "Noch kein Hauptpreis"}
         </p>
         <p className="mt-2 text-sm font-medium text-muted-warm">
-          Hotel Alpenblick
+          {prize?.sponsor ?? "Keine Sponsor-Daten"}
         </p>
       </div>
 
@@ -615,7 +533,7 @@ function NextMainPrizeCard() {
           Wert
         </p>
         <p className="mt-2 text-[1.9rem] font-semibold tracking-tight text-accent-red-dark">
-          CHF 1’200
+          {prize?.value ?? "CHF -"}
         </p>
       </div>
 
@@ -651,12 +569,22 @@ function PrizeHintCard({ onAdjust }: { onAdjust: () => void }) {
 export default function DesktopPrizeManagementPage() {
   const [query, setQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<PrizeFilter>("all");
+  const [prizeData, setPrizeData] = useState<ReturnType<typeof mapPrizeData> | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
+
+  useEffect(() => {
+    fetchPrizes()
+      .then((data) => setPrizeData(mapPrizeData(data)))
+      .catch(() => setError("Preisdaten konnten nicht geladen werden."));
+  }, []);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
   const filteredPrizes = useMemo(() => {
-    return PRIZES.filter((prize) => {
+    return (prizeData?.prizes ?? []).filter((prize) => {
       const matchesFilter =
         selectedFilter === "all" ||
         prize.category === selectedFilter ||
@@ -675,7 +603,7 @@ export default function DesktopPrizeManagementPage() {
         .toLowerCase()
         .includes(normalizedQuery);
     });
-  }, [normalizedQuery, selectedFilter]);
+  }, [normalizedQuery, prizeData, selectedFilter]);
 
   const handlePlaceholderAction = (label: string) => {
     console.info(`${label} ist noch nicht verbunden.`);
@@ -716,8 +644,14 @@ export default function DesktopPrizeManagementPage() {
           </PageReveal>
         </header>
 
+        {error ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-accent-red shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {error}
+          </p>
+        ) : null}
+
         <section className="mt-8 grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
-          {PRIZE_KPIS.map((kpi, index) => (
+          {(prizeData?.kpis ?? []).map((kpi, index) => (
             <PageReveal
               key={kpi.label}
               delay={200 + index * 80}
@@ -801,16 +735,19 @@ export default function DesktopPrizeManagementPage() {
                 )}
               </div>
 
-              <PrizePagination visibleCount={filteredPrizes.length} />
+              <PrizePagination
+                visibleCount={filteredPrizes.length}
+                totalCount={prizeData?.prizes.length ?? 0}
+              />
             </SurfaceCard>
           </PageReveal>
 
           <aside className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-1">
             <PageReveal delay={640} variant="right" className="h-full w-full">
-              <PrizeOverviewCard />
+              {prizeData ? <PrizeOverviewCard overview={prizeData.overview} /> : null}
             </PageReveal>
             <PageReveal delay={720} variant="right" className="h-full w-full">
-              <NextMainPrizeCard />
+              <NextMainPrizeCard prize={prizeData?.nextHighlight ?? null} />
             </PageReveal>
             <PageReveal delay={800} variant="right" className="h-full w-full">
               <PrizeHintCard

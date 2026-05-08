@@ -1,3 +1,23 @@
+-- =========================================================
+-- Lottomatch PostgreSQL Database Initialization
+-- =========================================================
+-- Creates the schema for the Lottomatch raffle system.
+--
+-- Raffle model used in this schema:
+--   Option A: one raffle chance per guest per event day.
+--   A check-in is the raffle entry.
+--   A draw links one prize to one winning check-in.
+--
+-- Recommended order:
+--   psql -U <user> -d <database> -f init.sql
+--   psql -U <user> -d <database> -f seed.sql
+-- =========================================================
+
+-- =========================
+-- CLEAN START
+-- =========================
+-- Drop objects in dependency order so this file can be rerun during development.
+
 drop table if exists campaign_recipients;
 drop table if exists mail_campaigns;
 drop table if exists draws;
@@ -10,7 +30,7 @@ drop table if exists addresses;
 drop table if exists users;
 
 drop function if exists set_updated_at();
-drop function if exists validate_draw_same_event();
+drop function if exists validate_draw_same_event_day();
 
 drop type if exists recipient_status;
 drop type if exists campaign_channel;
@@ -219,10 +239,7 @@ create index idx_prizes_event_day_id on prizes(event_day_id);
 -- DRAWS
 -- =========================
 -- A draw links one prize to one winning check-in.
--- This guarantees that only checked-in guests from the same Lottomatch event can win.
--- The check-in does not need to be from the same event day as the prize.
--- Example: a day 1 check-in can win a day 2 prize, as long as both belong to the
--- same Lottomatch event.
+-- This guarantees that only checked-in guests can win.
 -- The same guest can still have two raffle chances when they checked in on both days.
 
 create table draws (
@@ -238,39 +255,35 @@ create index idx_draws_checkin_id on draws(checkin_id);
 create index idx_draws_drawn_by_user_id on draws(drawn_by_user_id);
 create index idx_draws_drawn_at on draws(drawn_at);
 
--- Ensure the prize and the winning check-in belong to the same Lottomatch event.
--- The event day itself does not need to match.
--- This prevents accidentally assigning a 2026 prize to a 2025 check-in,
--- while still allowing day 1 and day 2 check-ins to be used across the same event.
-create function validate_draw_same_event()
+-- Ensure the prize and the winning check-in belong to the same event day.
+-- Without this trigger, a Day 1 prize could accidentally be assigned to a Day 2 check-in.
+create function validate_draw_same_event_day()
 returns trigger as $$
 declare
-  prize_event_id bigint;
-  checkin_event_id bigint;
+  prize_day_id bigint;
+  checkin_day_id bigint;
 begin
-  select ed.event_id
-    into prize_event_id
+  select p.event_day_id
+    into prize_day_id
   from prizes p
-  join event_days ed on ed.id = p.event_day_id
   where p.id = new.prize_id;
 
-  select ed.event_id
-    into checkin_event_id
+  select c.event_day_id
+    into checkin_day_id
   from checkins c
-  join event_days ed on ed.id = c.event_day_id
   where c.id = new.checkin_id;
 
-  if prize_event_id is null then
+  if prize_day_id is null then
     raise exception 'Invalid prize_id % for draw.', new.prize_id;
   end if;
 
-  if checkin_event_id is null then
+  if checkin_day_id is null then
     raise exception 'Invalid checkin_id % for draw.', new.checkin_id;
   end if;
 
-  if prize_event_id <> checkin_event_id then
+  if prize_day_id <> checkin_day_id then
     raise exception
-      'Prize and winning check-in must belong to the same Lottomatch event. prize_id=%, checkin_id=%',
+      'Prize and winning check-in must belong to the same event day. prize_id=%, checkin_id=%',
       new.prize_id,
       new.checkin_id;
   end if;
@@ -279,10 +292,10 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger trg_validate_draw_same_event
+create trigger trg_validate_draw_same_event_day
 before insert or update of prize_id, checkin_id on draws
 for each row
-execute function validate_draw_same_event();
+execute function validate_draw_same_event_day();
 
 -- =========================
 -- MAIL CAMPAIGNS

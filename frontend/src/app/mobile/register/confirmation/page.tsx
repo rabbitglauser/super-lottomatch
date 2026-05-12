@@ -13,7 +13,23 @@ import {
   UserPlus,
 } from "lucide-react";
 
-export default function RegisterConfirmationPage() {
+import { GuestQRCode } from "./GuestQRCode";
+
+const DEMO_CODE = "G-DEMO-001";
+
+// Next steps to finish the registration -> QR pipeline:
+//   1. Add POST /guests to backend/main.py that returns the generated guest_code.
+//   2. Add createGuest(payload) to frontend/src/lib/api.ts.
+//   3. Wire ../page.tsx to call createGuest() and router.push(`./confirmation?code=${response.guest_code}`).
+export default async function RegisterConfirmationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const raw = Array.isArray(params.code) ? params.code[0] : params.code;
+  const code = raw && raw.trim().length > 0 ? raw.trim() : DEMO_CODE;
+
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
       <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
@@ -42,20 +58,7 @@ export default function RegisterConfirmationPage() {
               Active Code
             </div>
 
-            <div className="mx-auto mt-8 flex h-64 w-64 items-center justify-center bg-[#111]">
-              <div className="grid h-36 w-36 grid-cols-5 gap-1 bg-white p-3">
-                {Array.from({ length: 25 }).map((_, index) => (
-                  <span
-                    key={index}
-                    className={
-                      index % 2 === 0 || index % 7 === 0
-                        ? "bg-black"
-                        : "bg-white"
-                    }
-                  />
-                ))}
-              </div>
-            </div>
+            <GuestQRCode code={code} />
           </div>
 
           <div className="mt-8 rounded-xl border border-[#f0e1e3] bg-[#fff9f9] p-8 text-left">
@@ -64,7 +67,7 @@ export default function RegisterConfirmationPage() {
             </p>
 
             <p className="mt-3 text-5xl font-extrabold tracking-[-0.06em] text-[#e12c39]">
-              SL-9912
+              {code}
             </p>
 
             <div className="my-8 h-px bg-[#f0e1e3]" />

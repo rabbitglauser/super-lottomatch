@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <title>SuperLottomatch — Test-QR-Codes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+    h1 { margin: 0 0 4px; font-size: 24px; }
+    p.lede { margin: 0 0 24px; color: #555; max-width: 640px; }
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .controls input {
+      flex: 1;
+      min-width: 220px;
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .controls button {
+      padding: 10px 20px;
+      background: #B3011A;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .controls button:hover { background: #8e0014; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      break-inside: avoid;
+    }
+    .card canvas, .card img { display: block; margin: 0 auto 8px; max-width: 100%; height: auto; }
+    .card .code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; color: #555; }
+    .card .name { font-weight: 600; margin-top: 4px; font-size: 15px; }
+    #custom-area { margin-top: 32px; }
+    #custom-area .card { max-width: 320px; }
+    @media print {
+      body { background: white; padding: 0; }
+      .controls, .lede, h1 { display: none; }
+      .card { box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <h1>SuperLottomatch — Test-QR-Codes</h1>
+  <p class="lede">
+    QR-Codes für die 20 Seed-Gäste. Diese Seite ist nur für Entwicklung und Demo
+    (<code>frontend/public/dev-qr.html</code>). Auf das Telefon übertragen, ausdrucken,
+    oder direkt am Bildschirm scannen. <strong>Drucken:</strong> <kbd>Ctrl/Cmd + P</kbd>.
+  </p>
+
+  <div class="controls">
+    <input id="custom-input" type="text" placeholder="Eigener guest_code (z.B. G-099999)" />
+    <button id="custom-btn">QR generieren</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div id="custom-area"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script>
+    const guests = [
+      ["G-000001", "Hans Müller"],
+      ["G-000002", "Margrit Zimmermann"],
+      ["G-000003", "Peter Achermann"],
+      ["G-000004", "Ruth Barmettler"],
+      ["G-000005", "Josef Christen"],
+      ["G-000006", "Elisabeth Felder"],
+      ["G-000007", "Kurt Odermatt"],
+      ["G-000008", "Anita Rohrer"],
+      ["G-000009", "Beat Lussi"],
+      ["G-000010", "Monika Herger"],
+      ["G-000011", "Thomas Arnold"],
+      ["G-000012", "Vreni Durrer"],
+      ["G-000013", "Ernst Blättler"],
+      ["G-000014", "Claudia Waser"],
+      ["G-000015", "Markus Niederberger"],
+      ["G-000016", "Silvia Rohrer"],
+      ["G-000017", "Daniel Hess"],
+      ["G-000018", "Yvonne Camenzind"],
+      ["G-000019", "Walter Zumbühl"],
+      ["G-000020", "Petra Bucher"],
+    ];
+
+    function renderCard(parent, code, name) {
+      const card = document.createElement("div");
+      card.className = "card";
+      const canvas = document.createElement("canvas");
+      card.appendChild(canvas);
+      const nameEl = document.createElement("div");
+      nameEl.className = "name";
+      nameEl.textContent = name || "Custom";
+      card.appendChild(nameEl);
+      const codeEl = document.createElement("div");
+      codeEl.className = "code";
+      codeEl.textContent = code;
+      card.appendChild(codeEl);
+      parent.appendChild(card);
+      QRCode.toCanvas(canvas, code, { width: 200, margin: 1, errorCorrectionLevel: "M" });
+    }
+
+    const grid = document.getElementById("grid");
+    guests.forEach(([code, name]) => renderCard(grid, code, name));
+
+    document.getElementById("custom-btn").addEventListener("click", () => {
+      const value = document.getElementById("custom-input").value.trim();
+      if (!value) return;
+      const area = document.getElementById("custom-area");
+      area.innerHTML = "";
+      renderCard(area, value, "Eigener Code");
+    });
+  </script>
+</body>
+</html>

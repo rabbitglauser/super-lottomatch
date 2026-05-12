@@ -74,10 +74,13 @@ export default function MobileRegisterPage() {
               />
             </FormSection>
 
-            <button className="flex h-18 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-xl font-extrabold text-white shadow-xl shadow-red-200">
+            <Link
+              href="/mobile/register/confirmation?code=G-DEMO-001"
+              className="flex h-18 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-xl font-extrabold text-white shadow-xl shadow-red-200"
+            >
               Registrieren
               <ArrowRight size={26} />
-            </button>
+            </Link>
 
             <label className="flex gap-4 rounded-xl bg-[#ffd9dc] p-6 text-sm leading-6">
               <input

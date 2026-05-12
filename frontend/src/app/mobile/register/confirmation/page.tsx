@@ -1,73 +1,101 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  AlertTriangle,
   Bell,
   Calendar,
+  Check,
   CircleUser,
-  Clock3,
+  Download,
   MapPin,
+  Printer,
   QrCode,
   Search,
   UserPlus,
 } from "lucide-react";
 
-export default function ScannerWarningPage() {
+export default function RegisterConfirmationPage() {
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
       <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
         <MobileHeader />
 
-        <section className="flex flex-1 flex-col px-6 pb-32 pt-10 text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#fff0f1] text-[#e12c39]">
-            <AlertTriangle size={50} fill="currentColor" />
+        <section className="flex flex-1 flex-col px-6 pb-32 pt-12 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#ffd9dc] text-[#e12c39]">
+            <Check size={34} strokeWidth={4} />
           </div>
 
-          <h1 className="mt-8 text-4xl font-extrabold tracking-[-0.04em]">
-            Warnung
+          <h1 className="mt-9 text-4xl font-extrabold tracking-[-0.04em]">
+            Bestätigung
           </h1>
 
-          <div className="mx-auto mt-3 rounded-lg border border-[#ffb3bb] bg-[#ffe8eb] px-5 py-2 text-sm font-bold text-[#e12c39]">
-            Achtung: Gast bereits eingecheckt!
-          </div>
+          <h2 className="mt-6 text-2xl font-extrabold text-[#e12c39]">
+            Registrierung abgeschlossen!
+          </h2>
 
-          <div className="mt-8 rounded-3xl border border-[#f0e1e3] bg-white p-6 text-left shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-xl bg-[radial-gradient(circle,#e8d5c9_0%,#6b7a6c_100%)]" />
+          <p className="mx-auto mt-6 max-w-[340px] text-lg leading-7 text-[#6f5a5d]">
+            Bitte speichern oder fotografieren Sie diesen Code für den Einlass.
+          </p>
 
-              <div>
-                <h2 className="text-2xl font-extrabold">Herr. Claudio Hübscher</h2>
-                <p className="text-sm text-[#5b484b]">User Code · ID: #882-AF</p>
+          <div className="relative mt-8 rounded-xl bg-white p-8 shadow-sm ring-1 ring-[#f0e1e3]">
+            <div className="absolute right-8 top-7 flex items-center gap-2 rounded-full bg-[#eee4e3] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.15em] text-[#5b484b]">
+              <span className="h-2 w-2 rounded-full bg-[#e12c39]" />
+              Active Code
+            </div>
+
+            <div className="mx-auto mt-8 flex h-64 w-64 items-center justify-center bg-[#111]">
+              <div className="grid h-36 w-36 grid-cols-5 gap-1 bg-white p-3">
+                {Array.from({ length: 25 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={
+                      index % 2 === 0 || index % 7 === 0
+                        ? "bg-black"
+                        : "bg-white"
+                    }
+                  />
+                ))}
               </div>
             </div>
+          </div>
 
-            <div className="mt-6 space-y-4">
-              <InfoRow icon={<Clock3 size={26} />} label="Erster Check-in heute" value="08:42 Uhr" />
-              <InfoRow icon={<MapPin size={26} />} label="Station" value="Haupteingang West" />
+          <div className="mt-8 rounded-xl border border-[#f0e1e3] bg-[#fff9f9] p-8 text-left">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#5b484b]">
+              Gäste-Code
+            </p>
+
+            <p className="mt-3 text-5xl font-extrabold tracking-[-0.06em] text-[#e12c39]">
+              SL-9912
+            </p>
+
+            <div className="my-8 h-px bg-[#f0e1e3]" />
+
+            <div className="space-y-5">
+              <InfoLine
+                icon={<Calendar size={24} />}
+                label="Datum"
+                value="21. April 2026"
+              />
+
+              <InfoLine
+                icon={<MapPin size={24} />}
+                label="Veranstaltungsort"
+                value="STV Ennetbürgen Halle"
+              />
             </div>
           </div>
 
-          <Link
-            href="/mobile/scanner/success"
-            className="mt-6 flex h-16 items-center justify-center rounded-xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-lg font-extrabold uppercase text-white shadow-xl shadow-red-200"
-          >
-            Check-in trotzdem bestätigen
-          </Link>
+          <button className="mt-8 flex h-16 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-xl font-extrabold text-white shadow-xl shadow-red-200">
+            <Download size={25} />
+            Als Bild speichern
+          </button>
 
-          <Link
-            href="/mobile/scanner"
-            className="mt-4 flex h-16 items-center justify-center rounded-xl bg-[#eee4e3] text-lg font-extrabold text-[#231f20]"
-          >
-            Abbrechen
-          </Link>
-
-          <p className="mx-auto mt-8 max-w-[320px] text-sm leading-6 text-[#6f5a5d]">
-            Hinweis: Dies kann vorkommen, wenn der Gast das Gelände kurzzeitig
-            verlassen hat oder die Karte versehentlich doppelt gescannt wurde.
-          </p>
+          <button className="mt-4 flex h-16 items-center justify-center gap-3 rounded-xl bg-[#eee7dc] text-xl font-extrabold">
+            <Printer size={25} />
+            Drucken
+          </button>
         </section>
 
-        <BottomNavigation active="checkin" />
+        <BottomNavigation active="new" />
       </div>
     </main>
   );
@@ -77,7 +105,7 @@ function MobileHeader() {
   return (
     <header className="flex items-center justify-between border-b border-[#f0e1e3] bg-white px-6 py-5">
       <h1 className="text-xl font-extrabold text-[#e12c39]">
-        STV EVENT MANAGER
+        STV Event Manager
       </h1>
 
       <div className="flex items-center gap-4 text-[#5b484b]">
@@ -88,7 +116,7 @@ function MobileHeader() {
   );
 }
 
-function InfoRow({
+function InfoLine({
   icon,
   label,
   value,
@@ -98,24 +126,50 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-[#fff0f1] p-4">
-      <div className="flex items-center gap-3 text-[#e12c39]">
-        {icon}
-        <span className="text-sm font-semibold text-[#5b484b]">{label}</span>
-      </div>
+    <div className="flex gap-4">
+      <div className="text-[#e12c39]">{icon}</div>
 
-      <span className="text-base font-extrabold text-[#e12c39]">{value}</span>
+      <div>
+        <p className="text-sm font-extrabold uppercase tracking-[0.15em] text-[#5b484b]">
+          {label}
+        </p>
+        <p className="text-lg font-extrabold">{value}</p>
+      </div>
     </div>
   );
 }
 
-function BottomNavigation({ active }: { active: "home" | "checkin" | "search" | "new" }) {
+function BottomNavigation({
+  active,
+}: {
+  active: "home" | "checkin" | "search" | "new";
+}) {
   return (
     <nav className="fixed bottom-0 left-1/2 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-4 border-t border-[#f0e1e3] bg-white px-3 py-3">
-      <BottomNavItem href="/mobile" icon={<Calendar size={22} />} label="HEUTE" active={active === "home"} />
-      <BottomNavItem href="/mobile/scanner" icon={<QrCode size={22} />} label="CHECK-IN" active={active === "checkin"} />
-      <BottomNavItem href="/mobile/search" icon={<Search size={22} />} label="SUCHEN" active={active === "search"} />
-      <BottomNavItem href="/mobile/register" icon={<UserPlus size={22} />} label="NEUER GAST" active={active === "new"} />
+      <BottomNavItem
+        href="/mobile"
+        icon={<Calendar size={22} />}
+        label="HEUTE"
+        active={active === "home"}
+      />
+      <BottomNavItem
+        href="/mobile/scanner"
+        icon={<QrCode size={22} />}
+        label="CHECK-IN"
+        active={active === "checkin"}
+      />
+      <BottomNavItem
+        href="/mobile/search"
+        icon={<Search size={22} />}
+        label="SUCHEN"
+        active={active === "search"}
+      />
+      <BottomNavItem
+        href="/mobile/register"
+        icon={<UserPlus size={22} />}
+        label="NEUER GAST"
+        active={active === "new"}
+      />
     </nav>
   );
 }

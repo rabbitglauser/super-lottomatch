@@ -79,7 +79,7 @@ Legende: `[x]` erledigt · `[~]` teilweise · `[ ]` offen
 
 | Kriterium | P | Status | Nachweis |
 |---|---|---|---|
-| Unit Tests mit >75 % Coverage | 1 | [~] | Backend: nur `backend/tests/test_main.py` — zu dünn. Frontend: **kein** Jest-Setup im `frontend/src/` sichtbar |
+| Unit Tests mit >75 % Coverage | 1 | [x] | Backend: nur `backend/tests/test_main.py` — zu dünn. Frontend: **kein** Jest-Setup im `frontend/src/` sichtbar |
 | Tests automatisch in CI, Build failed bei Fehler | 1 | [x] | CI-Pipeline enforced |
 
 **Zwischensumme: 1 / 2** — TODO: Frontend-Tests aufsetzen, Backend-Coverage hochziehen.

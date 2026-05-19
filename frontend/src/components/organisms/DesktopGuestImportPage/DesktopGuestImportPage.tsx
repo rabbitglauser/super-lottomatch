@@ -15,16 +15,34 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  GUEST_IMPORT_FIELD_OPTIONS,
-  GUEST_IMPORT_FILE,
-  GUEST_IMPORT_MAPPINGS,
-  type GuestImportFile,
-} from "@/lib/guest-import-mock";
 import { cn } from "@/lib/utils";
 
 const mappingGridClass =
   "xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.95fr)_minmax(0,0.9fr)]";
+
+interface GuestImportFile {
+  name: string;
+  sizeLabel: string;
+  status: string;
+}
+
+const GUEST_IMPORT_FIELD_OPTIONS = [
+  "Vorname",
+  "Nachname",
+  "E-Mail",
+  "Telefon",
+  "Strasse",
+  "Hausnummer",
+  "PLZ",
+  "Ort",
+  "Notizen",
+] as const;
+
+const guestImportMappings: {
+  csvColumn: string;
+  systemField: string;
+  example: string;
+}[] = [];
 
 function formatFileSize(bytes: number) {
   if (bytes >= 1024 * 1024) {
@@ -85,9 +103,7 @@ function SelectedFileRow({
 
 function UploadCard() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<GuestImportFile | null>(
-    GUEST_IMPORT_FILE,
-  );
+  const [selectedFile, setSelectedFile] = useState<GuestImportFile | null>(null);
 
   const openFileDialog = () => {
     inputRef.current?.click();
@@ -224,7 +240,7 @@ function MappingTable() {
       </div>
 
       <div className="mt-2 space-y-4">
-        {GUEST_IMPORT_MAPPINGS.map((mapping) => (
+        {guestImportMappings.map((mapping) => (
           <div
             key={mapping.csvColumn}
             className={cn(
@@ -270,6 +286,10 @@ function MappingTable() {
             </div>
           </div>
         ))}
+        <div className="rounded-[1.6rem] bg-[#fff8f8] px-4 py-8 text-center text-sm text-muted-warm">
+          Laden Sie eine Datei hoch, um Spalten aus der Datenbankstruktur
+          zuzuordnen.
+        </div>
       </div>
 
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">

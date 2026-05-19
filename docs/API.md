@@ -1,9 +1,9 @@
-# API Reference — SuperLottomatch
+# API Reference - SuperLottomatch
 
-**Date:** 2026-04-25
+**Date:** 2026-05-08  
 **Status:** Current implementation
 
-This document only covers the API that is actually implemented in `backend/main.py`.
+This document covers the FastAPI routes implemented in `backend/main.py`.
 
 ## Base URL
 
@@ -13,18 +13,20 @@ Local development:
 
 There is currently no `/api` prefix in the backend routes.
 
-## CORS
+## Database
 
-The FastAPI app currently allows browser requests from:
+The backend uses PostgreSQL through SQLAlchemy. Local Docker configuration starts a PostgreSQL service and loads:
 
-- `http://localhost:3000`
-- `http://localhost:3001`
+- `database/init/init.sql`
+- `database/init/seed.sql`
+
+Runtime connection settings are read from `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, and `DATABASE_PASSWORD`, or from `DATABASE_URL` when provided.
 
 ## Endpoints
 
 ### `GET /`
 
-Health-style root endpoint used by tests and quick environment checks.
+Health-style root endpoint.
 
 Response:
 
@@ -36,48 +38,38 @@ Response:
 
 ### `POST /auth/login`
 
-Looks up a user by email in the MySQL `users` table and compares the submitted password to the stored `password` column.
+Looks up an active user by email in the PostgreSQL `users` table and compares the submitted password to `password_hash`.
 
-Request body:
+### `GET /dashboard`
 
-```json
-{
-  "email": "samuel.glauser@gmail.com",
-  "password": "123"
-}
-```
+Returns dashboard stats, latest event days, live update text, and location data derived from the latest `lotto_events` and `event_days` rows.
 
-Success response:
+### `GET /guests`
 
-```json
-{
-  "id": 1,
-  "name": "Samuel Glauser",
-  "email": "samuel.glauser@gmail.com"
-}
-```
+Returns guest records with address city, latest participation date, marketing consent state, initials, and UI avatar tone.
 
-Error response:
+### `PATCH /guests/{guest_id}/marketing`
 
-```json
-{
-  "detail": "Ungültige Zugangsdaten"
-}
-```
+Toggles `allow_email_marketing` for an active guest and returns the updated state.
 
-Status codes:
+### `GET /check-ins`
 
-- `200` on success
-- `401` on invalid credentials
+Returns the latest event day check-in dashboard, including all active guests and whether each guest has checked in for that event day.
 
-## Database dependency
+### `POST /check-ins/{guest_id}`
 
-`POST /auth/login` depends on the MySQL connection configured in `backend/database.py` and the seeded `users` table created by `database/init/init.sql`.
+Creates a manual check-in for the latest event day. If the guest is already checked in for that day, the existing check-in is returned.
 
-## Known limitations
+### `GET /prizes`
 
-- Passwords are currently stored and compared in plain text.
+Returns prizes for the latest event, derived KPI values, raffle overview data, and the next highlight prize.
+
+### `GET /analytics`
+
+Returns aggregate analytics derived from guests, check-ins, event days, draws, check-in methods, and marketing consent fields.
+
+## Known Limitations
+
+- Password verification still compares raw input to `password_hash`; real hash verification is not implemented yet.
 - No JWT/session token is issued yet.
-- No guest, event, check-in, prize, or reporting endpoints are currently implemented in the backend.
-
-For target-state or historical planning API ideas, see `docs/PRD.md`, but treat this file as the source of truth for the live repository.
+- Create/edit/delete workflows for guests, events, prizes, and draws are still mostly read-only in the UI.

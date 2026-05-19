@@ -1,6 +1,10 @@
-import { LIVE_UPDATE } from "@/lib/dashboard-mock";
+import type { LiveUpdate } from "@/lib/api";
 
-export default function DesktopLiveUpdateBanner() {
+export default function DesktopLiveUpdateBanner({
+  liveUpdate,
+}: {
+  liveUpdate: LiveUpdate;
+}) {
   return (
     <div className="relative h-[220px] overflow-hidden rounded-2xl bg-gradient-to-br from-[#12131A] via-[#1A1823] to-[#1E1B2D] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.45)]">
       <svg
@@ -28,10 +32,10 @@ export default function DesktopLiveUpdateBanner() {
 
       <div className="relative flex h-full flex-col justify-end p-8">
         <p className="text-xs font-semibold tracking-[0.18em] text-accent-red uppercase">
-          {LIVE_UPDATE.label}
+          {liveUpdate.label}
         </p>
         <p className="mt-3 max-w-xl text-2xl font-semibold leading-snug text-white sm:text-3xl">
-          {LIVE_UPDATE.message}
+          {liveUpdate.message}
         </p>
       </div>
     </div>

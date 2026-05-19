@@ -1,6 +1,7 @@
 import AnimatedCounter from "@/components/atoms/AnimatedCounter";
 import ProgressBar from "@/components/atoms/ProgressBar";
-import type { DashboardStat } from "@/lib/dashboard-mock";
+import type { DashboardStat } from "@/lib/api";
+import { Ticket } from "lucide-react";
 
 interface StatCardProps {
   stat: DashboardStat;
@@ -41,7 +42,7 @@ export default function DesktopStatCard({ stat }: StatCardProps) {
             <p className="text-2xl font-semibold text-charcoal">{stat.value}</p>
             <p className="mt-1 text-sm text-muted-warm">{stat.subtitle}</p>
           </div>
-          <stat.icon
+          <Ticket
             aria-hidden
             className="pointer-events-none absolute -right-4 -bottom-4 size-28 text-accent-red/10"
             strokeWidth={1.25}

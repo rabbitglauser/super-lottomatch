@@ -311,7 +311,6 @@ US-081 - Backups & restore
 ## Process & Next Steps
 - Each user story above is intentionally written to be clear and actionable. For each story the Scrum Master can create a GitHub issue using the story title, copy the content from the Acceptance Criteria and Definition of Done into the issue body, and assign priority/estimate labels.
 - Suggested labels: "user-story", "epic:<name>", "priority:high|medium|low", "size:S|M|L", "AI", "QR", "security".
-- If you want, I can create GitHub issues for all these stories automatically and add the suggested labels — tell me and I will proceed.
 
 ---
 

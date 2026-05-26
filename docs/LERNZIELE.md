@@ -28,8 +28,8 @@ Legende: `[x]` erledigt · `[~]` teilweise · `[ ]` offen
 
 | Kriterium | P | Status | Nachweis |
 |---|---|---|---|
-| Sprint Planning | 2 | [ ] | noch nicht durchgeführt |
-| Daily Scrum | 2 | [ ] | noch nicht durchgeführt |
+| Sprint Planning | 2 | [] | noch nicht durchgeführt |
+| Daily Scrum | 2 | [x] | noch nicht durchgeführt |
 | Sprint Review | 2 | [ ] | noch nicht durchgeführt |
 | Sprint Retrospektive | 2 | [ ] | noch nicht durchgeführt |
 

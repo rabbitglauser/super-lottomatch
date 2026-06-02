@@ -191,6 +191,19 @@ A check-in also represents one raffle entry.
 - `self_registration` – entered by the guest through a self-service form
 - `member_registration` – entered by an STV member
 
+### `prizes`
+
+Stores the prize catalog for an event day.
+
+**Important fields**
+
+- `id` – primary key
+- `event_day_id` – foreign key to `event_days`
+- `title`
+- `description`
+- `value_chf` – monetary prize value in Swiss francs
+- `created_at`
+
 ### `draws`
 
 Stores the actual raffle result by linking one prize to one winning check-in.

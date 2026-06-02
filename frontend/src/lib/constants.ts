@@ -9,8 +9,7 @@ import {
   Users,
 } from "lucide-react";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export { API_BASE_URL } from "@/lib/api-config";
 
 export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 

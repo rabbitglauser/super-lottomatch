@@ -207,29 +207,30 @@ insert into prizes (
   event_day_id,
   title,
   description,
+  value_chf,
   created_at
 ) overriding system value values
   -- 2025 historical prizes
-  (1, 1, 'Restaurantgutschein Nidwalden', 'Gutschein im Wert von CHF 80.', '2025-11-01 10:00:00+01'),
-  (2, 1, 'Früchtekorb', 'Regionaler Früchtekorb.', '2025-11-01 10:00:00+01'),
-  (3, 2, 'Wellness-Eintritt', 'Eintritt für zwei Personen.', '2025-11-01 10:00:00+01'),
-  (4, 2, 'Kaffeepaket', 'Kaffee und Gebäck.', '2025-11-01 10:00:00+01'),
+  (1, 1, 'Restaurantgutschein Nidwalden', 'Gutschein im Wert von CHF 80.', 80.00, '2025-11-01 10:00:00+01'),
+  (2, 1, 'Früchtekorb', 'Regionaler Früchtekorb.', 35.00, '2025-11-01 10:00:00+01'),
+  (3, 2, 'Wellness-Eintritt', 'Eintritt für zwei Personen.', 90.00, '2025-11-01 10:00:00+01'),
+  (4, 2, 'Kaffeepaket', 'Kaffee und Gebäck.', 30.00, '2025-11-01 10:00:00+01'),
 
   -- 2026 day 1 prizes
-  (5, 3, 'Hauptpreis Day 1: Reisegutschein', 'Reisegutschein im Wert von CHF 300.', '2026-10-20 19:00:00+02'),
-  (6, 3, 'Einkaufsgutschein Day 1', 'Gutschein im Wert von CHF 100.', '2026-10-20 19:00:00+02'),
-  (7, 3, 'Geschenkkorb Day 1', 'Geschenkkorb mit regionalen Produkten.', '2026-10-20 19:00:00+02'),
-  (8, 3, 'Kinoabend Day 1', 'Zwei Kinotickets inklusive Snacks.', '2026-10-20 19:00:00+02'),
-  (9, 3, 'Brunch-Gutschein Day 1', 'Brunch für zwei Personen.', '2026-10-20 19:00:00+02'),
-  (10, 3, 'Blumenstrauss Day 1', 'Blumenstrauss von lokalem Geschäft.', '2026-10-20 19:00:00+02'),
+  (5, 3, 'Hauptpreis Day 1: Reisegutschein', 'Reisegutschein im Wert von CHF 300.', 300.00, '2026-10-20 19:00:00+02'),
+  (6, 3, 'Einkaufsgutschein Day 1', 'Gutschein im Wert von CHF 100.', 100.00, '2026-10-20 19:00:00+02'),
+  (7, 3, 'Geschenkkorb Day 1', 'Geschenkkorb mit regionalen Produkten.', 85.00, '2026-10-20 19:00:00+02'),
+  (8, 3, 'Kinoabend Day 1', 'Zwei Kinotickets inklusive Snacks.', 60.00, '2026-10-20 19:00:00+02'),
+  (9, 3, 'Brunch-Gutschein Day 1', 'Brunch für zwei Personen.', 90.00, '2026-10-20 19:00:00+02'),
+  (10, 3, 'Blumenstrauss Day 1', 'Blumenstrauss von lokalem Geschäft.', 45.00, '2026-10-20 19:00:00+02'),
 
   -- 2026 day 2 prizes
-  (11, 4, 'Hauptpreis Day 2: E-Bike Mietgutschein', 'Tagesmiete für zwei E-Bikes.', '2026-10-20 19:00:00+02'),
-  (12, 4, 'Restaurantgutschein Day 2', 'Gutschein im Wert von CHF 120.', '2026-10-20 19:00:00+02'),
-  (13, 4, 'Saisonales Geschenkset Day 2', 'Set mit regionalen Produkten.', '2026-10-20 19:00:00+02'),
-  (14, 4, 'Bäckerei-Gutschein Day 2', 'Gutschein im Wert von CHF 50.', '2026-10-20 19:00:00+02'),
-  (15, 4, 'Sportartikel-Gutschein Day 2', 'Gutschein im Wert von CHF 75.', '2026-10-20 19:00:00+02'),
-  (16, 4, 'Bücher-Gutschein Day 2', 'Gutschein im Wert von CHF 40.', '2026-10-20 19:00:00+02');
+  (11, 4, 'Hauptpreis Day 2: E-Bike Mietgutschein', 'Tagesmiete für zwei E-Bikes.', 140.00, '2026-10-20 19:00:00+02'),
+  (12, 4, 'Restaurantgutschein Day 2', 'Gutschein im Wert von CHF 120.', 120.00, '2026-10-20 19:00:00+02'),
+  (13, 4, 'Saisonales Geschenkset Day 2', 'Set mit regionalen Produkten.', 65.00, '2026-10-20 19:00:00+02'),
+  (14, 4, 'Bäckerei-Gutschein Day 2', 'Gutschein im Wert von CHF 50.', 50.00, '2026-10-20 19:00:00+02'),
+  (15, 4, 'Sportartikel-Gutschein Day 2', 'Gutschein im Wert von CHF 75.', 75.00, '2026-10-20 19:00:00+02'),
+  (16, 4, 'Bücher-Gutschein Day 2', 'Gutschein im Wert von CHF 40.', 40.00, '2026-10-20 19:00:00+02');
 
 -- =========================
 -- DRAWS

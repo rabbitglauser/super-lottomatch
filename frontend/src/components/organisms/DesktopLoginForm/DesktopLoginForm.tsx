@@ -21,14 +21,20 @@ export default function DesktopLoginForm() {
     setIsSubmitting(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
       });
 
-      if (!response.ok) {
+      if (response.status === 401) {
         setError("Ungültige Zugangsdaten");
+        return;
+      }
+
+      if (!response.ok) {
+        setError("Login konnte nicht verarbeitet werden");
         return;
       }
 
@@ -58,6 +64,8 @@ export default function DesktopLoginForm() {
           type="email"
           placeholder="name@beispiel.ch"
           icon={Mail}
+          required
+          autoComplete="username"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
@@ -68,6 +76,8 @@ export default function DesktopLoginForm() {
           type="password"
           placeholder="••••••••"
           icon={Lock}
+          required
+          autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />

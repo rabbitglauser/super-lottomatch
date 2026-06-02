@@ -12,6 +12,8 @@ interface FormFieldProps {
   type: string;
   placeholder: string;
   icon: LucideIcon;
+  required?: boolean;
+  autoComplete?: string;
   value: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
@@ -22,6 +24,8 @@ export default function FormField({
   type,
   placeholder,
   icon: Icon,
+  required,
+  autoComplete,
   value,
   onChange,
 }: FormFieldProps) {
@@ -33,6 +37,8 @@ export default function FormField({
           id={id}
           type={type}
           placeholder={placeholder}
+          required={required}
+          autoComplete={autoComplete}
           value={value}
           onChange={onChange}
         />

@@ -1,11 +1,8 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { API_BASE_URL } from "@/lib/api-config";
+
 const APP_TIME_ZONE = "Europe/Zurich";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  if (!API_BASE_URL) {
-    throw new Error("No public API base URL configured");
-  }
-
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -95,6 +92,19 @@ function formatTime(value: string | null | undefined) {
     minute: "2-digit",
     timeZone: APP_TIME_ZONE,
   }).format(date);
+}
+
+function formatChf(value: number | string | null | undefined) {
+  const amount = Number(value);
+
+  if (!Number.isFinite(amount)) {
+    return "CHF -";
+  }
+
+  return `CHF ${new Intl.NumberFormat("de-CH", {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
 }
 
 function monthLabel(value: string) {
@@ -371,6 +381,7 @@ interface PrizeRow {
   event_day_id: number;
   title: string;
   description: string | null;
+  value_chf: number | string | null;
 }
 
 interface DrawRow {
@@ -741,7 +752,7 @@ async function fetchPrizesFromSupabase(): Promise<PrizeData> {
     await Promise.all([
       supabase
         .from("prizes")
-        .select("id, event_day_id, title, description")
+        .select("id, event_day_id, title, description, value_chf")
         .in("event_day_id", eventDayIds)
         .order("event_day_id", { ascending: true })
         .order("id", { ascending: true })
@@ -759,12 +770,13 @@ async function fetchPrizesFromSupabase(): Promise<PrizeData> {
     description: prize.description || "Keine Beschreibung hinterlegt.",
     category: prizeCategory(prize.title, prize.description),
     sponsor: "STV Ennetbürgen",
-    value: "CHF -",
+    value: formatChf(prize.value_chf),
     status: drawnPrizeIds.has(prize.id) ? "Reserviert" : "Bereit",
   }));
   const drawn = prizes.filter((prize) => prize.status === "Reserviert").length;
   const mainPrizes = prizes.filter((prize) => prize.category === "Hauptpreis").length;
   const progress = roundPercent(drawn, prizes.length);
+  const totalValue = (prizeRows ?? []).reduce((sum, prize) => sum + Number(prize.value_chf ?? 0), 0);
 
   return {
     kpis: [
@@ -776,9 +788,9 @@ async function fetchPrizesFromSupabase(): Promise<PrizeData> {
       },
       {
         label: "Gesamtwert",
-        value: "CHF -",
-        subtitle: "nicht erfasst",
-        subtitleTone: "muted",
+        value: formatChf(totalValue),
+        subtitle: "erfasst",
+        subtitleTone: "accent",
       },
       {
         label: "Hauptpreise",

@@ -461,6 +461,7 @@ Table prizes {
   event_day_id int [not null]
   title varchar(150) [not null]
   description text
+  value_chf decimal(10,2) [not null]
   created_at datetime [not null]
 }
 

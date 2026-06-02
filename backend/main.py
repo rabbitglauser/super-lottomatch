@@ -1,4 +1,7 @@
+import os
+import secrets
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -12,13 +15,26 @@ from database import get_db
 
 app = FastAPI()
 APP_TIMEZONE = ZoneInfo("Europe/Zurich")
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://superlottomatch.vercel.app",
+]
+
+
+def get_cors_origins() -> list[str]:
+    configured_origins = os.environ.get("CORS_ORIGINS", "")
+    extra_origins = [
+        origin.strip().rstrip("/")
+        for origin in configured_origins.split(",")
+        if origin.strip()
+    ]
+    return [*DEFAULT_CORS_ORIGINS, *extra_origins]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,6 +50,21 @@ class LoginResponse(BaseModel):
     id: int
     name: str
     email: str
+
+
+def verify_password(password: str, stored_password: str) -> bool:
+    if stored_password.startswith(("$2a$", "$2b$", "$2y$")):
+        try:
+            import bcrypt
+        except ImportError:
+            return False
+
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            stored_password.encode("utf-8"),
+        )
+
+    return secrets.compare_digest(stored_password, password)
 
 
 def row_to_dict(row: Any) -> dict[str, Any]:
@@ -62,8 +93,30 @@ def format_time(value: datetime | None) -> str | None:
     return value.strftime("%H:%M")
 
 
+def format_chf(value: Decimal | int | float | str | None) -> str:
+    if value is None:
+        return "CHF -"
+    amount = Decimal(str(value))
+    if amount == amount.quantize(Decimal("1")):
+        return f"CHF {amount:.0f}"
+    return f"CHF {amount:.2f}"
+
+
 def month_label(value: date) -> str:
-    labels = ["JAN", "FEB", "MAR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"]
+    labels = [
+        "JAN",
+        "FEB",
+        "MAR",
+        "APR",
+        "MAI",
+        "JUN",
+        "JUL",
+        "AUG",
+        "SEP",
+        "OKT",
+        "NOV",
+        "DEZ",
+    ]
     return labels[value.month - 1]
 
 
@@ -115,18 +168,19 @@ async def root():
 
 @app.post("/auth/login", response_model=LoginResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    normalized_email = payload.email.strip().lower()
     row = db.execute(
         text(
             """
             select id, first_name, last_name, email, password_hash
             from users
-            where email = :email and is_active = true
+            where lower(email) = :email and is_active = true
             """
         ),
-        {"email": payload.email},
+        {"email": normalized_email},
     ).first()
 
-    if row is None or row.password_hash != payload.password:
+    if row is None or not verify_password(payload.password, row.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Zugangsdaten",
@@ -177,7 +231,9 @@ def get_dashboard(db: Session = Depends(get_db)):
 
     delta = 0
     if last_year_guests:
-        delta = round(((current_event_guests - last_year_guests) / last_year_guests) * 100)
+        delta = round(
+            ((current_event_guests - last_year_guests) / last_year_guests) * 100
+        )
 
     days = db.execute(
         text(
@@ -282,7 +338,9 @@ def get_guests(db: Session = Depends(get_db)):
             "code": row.guest_code,
             "city": row.city,
             "lastParticipation": format_date(row.last_participation),
-            "marketingActive": bool(row.allow_email_marketing or row.allow_post_marketing),
+            "marketingActive": bool(
+                row.allow_email_marketing or row.allow_post_marketing
+            ),
             "initials": initials(row.first_name, row.last_name),
             "avatarTone": avatar_tone(row.id),
         }
@@ -313,10 +371,16 @@ def update_guest_marketing(guest_id: int, db: Session = Depends(get_db)):
 
 @app.get("/check-ins")
 def get_check_ins(event_day_id: int | None = None, db: Session = Depends(get_db)):
-    day = latest_event_day(db) if event_day_id is None else db.execute(
-        text("select id, event_id, day_number, event_date from event_days where id = :id"),
-        {"id": event_day_id},
-    ).first()
+    day = (
+        latest_event_day(db)
+        if event_day_id is None
+        else db.execute(
+            text(
+                "select id, event_id, day_number, event_date from event_days where id = :id"
+            ),
+            {"id": event_day_id},
+        ).first()
+    )
 
     if day is None:
         raise HTTPException(status_code=404, detail="Event day not found")
@@ -384,10 +448,14 @@ def create_check_in(
     event_day_id: int | None = None,
     db: Session = Depends(get_db),
 ):
-    day = latest_event_day(db) if event_day_id is None else db.execute(
-        text("select id from event_days where id = :id"),
-        {"id": event_day_id},
-    ).first()
+    day = (
+        latest_event_day(db)
+        if event_day_id is None
+        else db.execute(
+            text("select id from event_days where id = :id"),
+            {"id": event_day_id},
+        ).first()
+    )
 
     if day is None:
         raise HTTPException(status_code=404, detail="Event day not found")
@@ -404,7 +472,10 @@ def create_check_in(
     ).first()
 
     if existing is not None:
-        return {"id": str(existing.id), "checkedInAt": format_time(existing.checked_in_at)}
+        return {
+            "id": str(existing.id),
+            "checkedInAt": format_time(existing.checked_in_at),
+        }
 
     row = db.execute(
         text(
@@ -450,6 +521,7 @@ def get_prizes(db: Session = Depends(get_db)):
               p.id,
               p.title,
               p.description,
+              p.value_chf,
               p.event_day_id,
               d.id as draw_id
             from prizes p
@@ -472,19 +544,35 @@ def get_prizes(db: Session = Depends(get_db)):
                 "description": row.description or "Keine Beschreibung hinterlegt.",
                 "category": category,
                 "sponsor": "STV Ennetbürgen",
-                "value": "CHF -",
+                "value": format_chf(row.value_chf),
                 "status": "Reserviert" if row.draw_id else "Bereit",
             }
         )
 
     drawn = sum(1 for prize in prizes if prize["status"] == "Reserviert")
     main_prizes = sum(1 for prize in prizes if prize["category"] == "Hauptpreis")
+    total_value = sum(Decimal(str(row.value_chf or 0)) for row in rows)
 
     return {
         "kpis": [
-            {"label": "Total Preise", "value": str(len(prizes)), "subtitle": "aus Datenbank", "subtitleTone": "accent"},
-            {"label": "Gesamtwert", "value": "CHF -", "subtitle": "nicht erfasst", "subtitleTone": "muted"},
-            {"label": "Hauptpreise", "value": str(main_prizes), "subtitle": "Top-Kategorie", "subtitleTone": "muted"},
+            {
+                "label": "Total Preise",
+                "value": str(len(prizes)),
+                "subtitle": "aus Datenbank",
+                "subtitleTone": "accent",
+            },
+            {
+                "label": "Gesamtwert",
+                "value": format_chf(total_value),
+                "subtitle": "erfasst",
+                "subtitleTone": "accent",
+            },
+            {
+                "label": "Hauptpreise",
+                "value": str(main_prizes),
+                "subtitle": "Top-Kategorie",
+                "subtitleTone": "muted",
+            },
             {
                 "label": "Ausgelost",
                 "value": str(drawn),
@@ -515,7 +603,11 @@ def get_analytics(db: Session = Depends(get_db)):
     total_event_days = db.execute(text("select count(*) from event_days")).scalar_one()
     completed_draws = db.execute(text("select count(*) from draws")).scalar_one()
     active_events = db.execute(text("select count(*) from lotto_events")).scalar_one()
-    checkin_rate = round((total_checkins / (total_guests * total_event_days)) * 100) if total_guests and total_event_days else 0
+    checkin_rate = (
+        round((total_checkins / (total_guests * total_event_days)) * 100)
+        if total_guests and total_event_days
+        else 0
+    )
 
     participant_rows = db.execute(
         text(
@@ -544,7 +636,9 @@ def get_analytics(db: Session = Depends(get_db)):
     ).all()
     method_total = sum(row.total for row in method_rows) or 1
     qr_total = sum(row.total for row in method_rows if row.method == "qr_code")
-    manual_total = sum(row.total for row in method_rows if row.method in {"manual_form", "guest_code"})
+    manual_total = sum(
+        row.total for row in method_rows if row.method in {"manual_form", "guest_code"}
+    )
     other_total = method_total - qr_total - manual_total
 
     checkins_by_day_rows = db.execute(
@@ -599,13 +693,24 @@ def get_analytics(db: Session = Depends(get_db)):
         },
         "participantTrend": participants,
         "deviceDistribution": [
-            {"key": "mobile", "label": "QR-Code", "value": round((qr_total / method_total) * 100)},
-            {"key": "desktop", "label": "Manuell", "value": round((manual_total / method_total) * 100)},
-            {"key": "tablet", "label": "Andere", "value": round((other_total / method_total) * 100)},
+            {
+                "key": "mobile",
+                "label": "QR-Code",
+                "value": round((qr_total / method_total) * 100),
+            },
+            {
+                "key": "desktop",
+                "label": "Manuell",
+                "value": round((manual_total / method_total) * 100),
+            },
+            {
+                "key": "tablet",
+                "label": "Andere",
+                "value": round((other_total / method_total) * 100),
+            },
         ],
         "checkinsByDay": [
-            {"label": row.label, "value": row.value}
-            for row in checkins_by_day_rows
+            {"label": row.label, "value": row.value} for row in checkins_by_day_rows
         ],
         "topEvents": [
             {
@@ -613,7 +718,9 @@ def get_analytics(db: Session = Depends(get_db)):
                 "date": format_date(row.start_date),
                 "guests": row.guests,
                 "checkIns": row.checkins,
-                "conversion": round((row.checkins / row.guests) * 100, 1) if row.guests else 0,
+                "conversion": round((row.checkins / row.guests) * 100, 1)
+                if row.guests
+                else 0,
                 "status": "Abgeschlossen",
             }
             for row in top_event_rows
@@ -628,9 +735,19 @@ def get_analytics(db: Session = Depends(get_db)):
             "grantedPercentage": granted_percentage,
             "grantedCount": granted,
             "breakdown": [
-                {"key": "granted", "label": "Eingewilligt", "percentage": granted_percentage, "count": granted},
+                {
+                    "key": "granted",
+                    "label": "Eingewilligt",
+                    "percentage": granted_percentage,
+                    "count": granted,
+                },
                 {"key": "pending", "label": "Ausstehend", "percentage": 0, "count": 0},
-                {"key": "rejected", "label": "Abgelehnt", "percentage": rejected_percentage, "count": rejected},
+                {
+                    "key": "rejected",
+                    "label": "Abgelehnt",
+                    "percentage": rejected_percentage,
+                    "count": rejected,
+                },
             ],
         },
         "analyticsPeriods": [{"label": "Datenbank gesamt", "value": "all"}],

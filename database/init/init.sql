@@ -145,6 +145,7 @@ create table prizes (
   event_day_id bigint not null references event_days(id),
   title varchar(150) not null,
   description text,
+  value_chf numeric(10, 2) not null default 0,
   created_at timestamptz not null default now()
 );
 

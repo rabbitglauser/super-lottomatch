@@ -3,6 +3,7 @@ uvicorn[standard]
 sqlalchemy
 psycopg[binary]
 cryptography
+bcrypt
 ruff
 pytest
 pytest-asyncio

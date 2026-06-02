@@ -62,7 +62,7 @@ Creates a manual check-in for the latest event day. If the guest is already chec
 
 ### `GET /prizes`
 
-Returns prizes for the latest event, derived KPI values, raffle overview data, and the next highlight prize.
+Returns prizes for the latest event, derived KPI values including the total CHF prize value, raffle overview data, and the next highlight prize.
 
 ### `GET /analytics`
 

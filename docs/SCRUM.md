@@ -19,6 +19,7 @@
 | **Scrum Master** | Amarah | Moderation der Scrum Events, Beseitigung von Hindernissen, Sicherstellung der Einhaltung des Scrum-Prozesses, Coaching des Teams |
 | **Developer** | Benji | Umsetzung der Sprint-Backlog-Einträge, Code Reviews, technische Entscheidungen, Qualitätssicherung |
 | **Developer** | Oddy | Umsetzung der Sprint-Backlog-Einträge, Code Reviews, technische Entscheidungen, Qualitätssicherung |
+| **Developer** | Florian | Umsetzung der Sprint-Backlog-Einträge, Code Reviews, technische Entscheidungen, Qualitätssicherung |
 
 ### 1.2 Selbstorganisation
 
@@ -58,7 +59,7 @@ Das Sprint Planning ist das Start-Meeting eines neuen Sprints. In diesem Termin 
 |--------|---------|
 | **Zeitpunkt** | Täglich (während der Unterrichtszeit) |
 | **Timebox** | max. 15 Minuten |
-| **Teilnehmer** | Entwicklungsteam (Benji, Oddy), Scrum Master (Amarah) |
+| **Teilnehmer** | Entwicklungsteam (Benji, Oddy, Florian), Scrum Master (Amarah) |
 | **Format** | Stand-up |
 
 **Jedes Teammitglied beantwortet drei Fragen:**
@@ -129,7 +130,7 @@ Das Product Backlog ist die vollständige, priorisierte Liste aller bekannten An
 **Beschreibung:**
 Das Sprint Backlog ist die Auswahl der Product-Backlog-Einträge, die das Team in einem bestimmten Sprint tatsächlich umsetzen will. Es ist also kleiner und konkreter als das Product Backlog. Zusätzlich enthält es die Aufgaben, mit denen diese Einträge umgesetzt werden. Während des Sprints wird das Sprint Backlog aktiv angepasst, wenn das Team neue Erkenntnisse gewinnt oder Arbeit präziser aufteilen muss.
 
-- **Verantwortlich:** Entwicklungsteam (Benji, Oddy)
+- **Verantwortlich:** Entwicklungsteam (Benji, Oddy, Florian)
 - **Inhalt:** Die vom Team ausgewählten Product-Backlog-Einträge für den aktuellen Sprint, aufgeteilt in konkrete Aufgaben (Tasks).
 - **Auswahl:** Im Sprint Planning wählt das Team basierend auf der Kapazität die Einträge aus, die es sich für den Sprint vornimmt.
 - **Anpassung:** Das Sprint Backlog wird während des Sprints vom Team aktualisiert; neue Erkenntnisse fliessen in die Aufgabenplanung ein.

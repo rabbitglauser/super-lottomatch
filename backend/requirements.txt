@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-pymysql
+psycopg[binary]
 cryptography
 ruff
 pytest

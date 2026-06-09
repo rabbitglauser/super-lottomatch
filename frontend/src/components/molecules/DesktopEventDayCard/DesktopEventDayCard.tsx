@@ -1,4 +1,4 @@
-import type { EventDay } from "@/lib/dashboard-mock";
+import type { EventDay } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface EventDayCardProps {

@@ -2,6 +2,7 @@
 
 import {
   useDeferredValue,
+  useEffect,
   useState,
   type ComponentType,
   type MouseEvent,
@@ -32,28 +33,18 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import PageReveal from "@/components/atoms/PageReveal";
+import {
+  createCheckIn,
+  fetchCheckIns,
+  type CheckInGuest,
+  type CheckInSummary,
+  type GuestStatus,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type GuestStatus = "checked-in" | "expected" | "no-show";
 type GuestFilter = "all" | GuestStatus;
-
-interface GuestRecord {
-  id: string;
-  name: string;
-  email: string;
-  initials: string;
-  ticket: string;
-  group: string;
-  status: GuestStatus;
-  time: string | null;
-}
-
-interface OverviewSummary {
-  total: number;
-  checkedIn: number;
-  expected: number;
-  noShow: number;
-}
+type GuestRecord = CheckInGuest;
+type OverviewSummary = CheckInSummary;
 
 interface KpiCardProps {
   label: string;
@@ -62,86 +53,6 @@ interface KpiCardProps {
   icon: ComponentType<{ className?: string }>;
   progress?: number;
 }
-
-const INITIAL_SUMMARY: OverviewSummary = {
-  total: 652,
-  checkedIn: 387,
-  expected: 242,
-  noShow: 23,
-};
-
-const INITIAL_GUESTS: GuestRecord[] = [
-  {
-    id: "guest-1",
-    name: "Marco Schneider",
-    email: "marco.schneider@email.ch",
-    initials: "MS",
-    ticket: "VIP Ticket",
-    group: "VIP Gäste",
-    status: "checked-in",
-    time: "10:24",
-  },
-  {
-    id: "guest-2",
-    name: "Anna Müller",
-    email: "anna.mueller@email.ch",
-    initials: "AN",
-    ticket: "Standard Ticket",
-    group: "Gruppe A",
-    status: "checked-in",
-    time: "10:21",
-  },
-  {
-    id: "guest-3",
-    name: "Jan Lüthi",
-    email: "jan.luethi@email.ch",
-    initials: "JL",
-    ticket: "Standard Ticket",
-    group: "Gruppe B",
-    status: "checked-in",
-    time: "10:18",
-  },
-  {
-    id: "guest-4",
-    name: "Sophie Berger",
-    email: "sophie.berger@email.ch",
-    initials: "SB",
-    ticket: "Standard Ticket",
-    group: "Gruppe A",
-    status: "expected",
-    time: null,
-  },
-  {
-    id: "guest-5",
-    name: "Michael Kälin",
-    email: "michael.kaelin@email.ch",
-    initials: "MK",
-    ticket: "VIP Ticket",
-    group: "VIP Gäste",
-    status: "expected",
-    time: null,
-  },
-  {
-    id: "guest-6",
-    name: "Laura Rüegg",
-    email: "laura.ruegg@email.ch",
-    initials: "LR",
-    ticket: "Standard Ticket",
-    group: "Gruppe C",
-    status: "no-show",
-    time: null,
-  },
-  {
-    id: "guest-7",
-    name: "Thomas Huber",
-    email: "thomas.huber@email.ch",
-    initials: "TH",
-    ticket: "Standard Ticket",
-    group: "Gruppe B",
-    status: "checked-in",
-    time: "09:58",
-  },
-];
 
 const FILTER_OPTIONS: { value: GuestFilter; label: string }[] = [
   { value: "all", label: "Alle" },
@@ -205,8 +116,6 @@ function getStatusCounts(guests: GuestRecord[]) {
     } as Record<GuestStatus, number>,
   );
 }
-
-const INITIAL_STATUS_COUNTS = getStatusCounts(INITIAL_GUESTS);
 
 function roundToSingleDecimal(value: number) {
   return Math.round(value * 10) / 10;
@@ -708,33 +617,37 @@ function RecentCheckInsCard({
 }
 
 export default function CheckInDashboardPage() {
-  const [guests, setGuests] = useState(INITIAL_GUESTS);
+  const [guests, setGuests] = useState<GuestRecord[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<GuestFilter>("all");
   const [visibleCount, setVisibleCount] = useState(5);
+  const [error, setError] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
+
+  useEffect(() => {
+    fetchCheckIns()
+      .then((data) => setGuests(data.guests))
+      .catch(() => setError("Check-in-Daten konnten nicht geladen werden."));
+  }, []);
 
   const currentCounts = getStatusCounts(guests);
 
   const summary: OverviewSummary = {
-    total: INITIAL_SUMMARY.total,
-    checkedIn:
-      INITIAL_SUMMARY.checkedIn +
-      currentCounts["checked-in"] -
-      INITIAL_STATUS_COUNTS["checked-in"],
-    expected:
-      INITIAL_SUMMARY.expected +
-      currentCounts.expected -
-      INITIAL_STATUS_COUNTS.expected,
-    noShow:
-      INITIAL_SUMMARY.noShow +
-      currentCounts["no-show"] -
-      INITIAL_STATUS_COUNTS["no-show"],
+    total: guests.length,
+    checkedIn: currentCounts["checked-in"],
+    expected: currentCounts.expected,
+    noShow: currentCounts["no-show"],
   };
 
-  const checkedInRate = roundToSingleDecimal((summary.checkedIn / summary.total) * 100);
-  const expectedRate = roundToSingleDecimal((summary.expected / summary.total) * 100);
-  const noShowRate = roundToSingleDecimal((summary.noShow / summary.total) * 100);
+  const checkedInRate = summary.total
+    ? roundToSingleDecimal((summary.checkedIn / summary.total) * 100)
+    : 0;
+  const expectedRate = summary.total
+    ? roundToSingleDecimal((summary.expected / summary.total) * 100)
+    : 0;
+  const noShowRate = summary.total
+    ? roundToSingleDecimal((summary.noShow / summary.total) * 100)
+    : 0;
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredGuests = guests.filter((guest) => {
@@ -777,7 +690,7 @@ export default function CheckInDashboardPage() {
     setVisibleCount(5);
   };
 
-  const handleManualCheckIn = (guestId: string) => {
+  const handleManualCheckIn = async (guestId: string) => {
     const checkedInAt = formatCurrentTime();
     setGuests((currentGuests) =>
       currentGuests.map((guest) =>
@@ -786,6 +699,30 @@ export default function CheckInDashboardPage() {
           : guest,
       ),
     );
+    try {
+      const savedCheckIn = await createCheckIn(guestId);
+      setGuests((currentGuests) =>
+        currentGuests.map((guest) =>
+          guest.id === guestId
+            ? {
+                ...guest,
+                status: "checked-in",
+                checkedInAt: savedCheckIn.checkedInAt,
+                time: savedCheckIn.checkedInAt,
+              }
+            : guest,
+        ),
+      );
+    } catch {
+      setGuests((currentGuests) =>
+        currentGuests.map((guest) =>
+          guest.id === guestId
+            ? { ...guest, status: "expected", checkedInAt: null, time: null }
+            : guest,
+        ),
+      );
+      setError("Check-in konnte nicht gespeichert werden.");
+    }
   };
 
   const handleCycleStatus = (guestId: string) => {
@@ -836,6 +773,12 @@ export default function CheckInDashboardPage() {
             </Button>
           </PageReveal>
         </header>
+
+        {error ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-accent-red shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {error}
+          </p>
+        ) : null}
 
         <section className="mt-8 grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
           <PageReveal delay={200} variant="up" className="h-full w-full">

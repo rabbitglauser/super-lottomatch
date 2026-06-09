@@ -1,6 +1,22 @@
 import PageReveal from "@/components/atoms/PageReveal";
 import DesktopQuickActionCard from "@/components/molecules/DesktopQuickActionCard";
-import { QUICK_ACTIONS } from "@/lib/dashboard-mock";
+import {
+  Dices,
+  FileUp,
+  Gift,
+  Plus,
+  QrCode,
+  UserPlus,
+} from "lucide-react";
+
+const QUICK_ACTIONS = [
+  { label: "Gast hinzufügen", icon: UserPlus, tone: "light" },
+  { label: "Gäste importieren", icon: FileUp, tone: "light" },
+  { label: "Check-in öffnen", icon: QrCode, tone: "light" },
+  { label: "Preis erstellen", icon: Gift, tone: "light" },
+  { label: "Verlosung starten", icon: Dices, tone: "red" },
+  { label: "Neues Event", icon: Plus, tone: "red" },
+] as const;
 
 export default function DesktopQuickActions() {
   return (

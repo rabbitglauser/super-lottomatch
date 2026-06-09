@@ -33,6 +33,7 @@ live-Backend: https://super-lottomatch.onrender.com/
 | Scrum Master | Amarah |
 | Developer | Benji |
 | Developer | Oddy |
+| Developer | Florian |
 
 ## Tech Stack
 

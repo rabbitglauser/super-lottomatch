@@ -4,7 +4,7 @@
 **Status:** Archived planning scope
 
 **Module:** M426 (GIBZ)  
-**Team:** Sammy (PO), Amarah (SM), Benji (Dev), Oddy (Dev)  
+**Team:** Sammy (PO), Amarah (SM), Benji (Dev), Oddy (Dev), Florian (Dev)  
 **Duration:** 5 weeks / 5 sprints  
 **Client:** STV Ennetbürgen
 
@@ -105,7 +105,7 @@ Digitalize the annual Lottomatch raffle event by replacing manual paper slips an
 | Constraint | Detail |
 |------------|--------|
 | **Timeline** | 5 weeks (1 sprint per week) |
-| **Team size** | 4 people |
+| **Team size** | 5 people |
 | **Budget** | Free-tier hosting only (Vercel, Railway/Render, PlanetScale) |
 | **Target users** | Majority aged 40+, limited tech experience |
 | **Accessibility** | Min 18px font, 48px touch targets, WCAG AA contrast |

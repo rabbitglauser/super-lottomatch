@@ -200,6 +200,42 @@ export interface GuestRecord {
   avatarTone: AvatarTone;
 }
 
+export interface GuestRegistrationInput {
+  firstName: string;
+  lastName: string;
+  street: string;
+  houseNumber: string;
+  postalCode: string;
+  city: string;
+  phone?: string;
+  email?: string;
+  allowEmailMarketing?: boolean;
+  allowPostMarketing?: boolean;
+  notes?: string;
+}
+
+export interface RegisteredGuest {
+  id: string;
+  guestCode: string;
+  name: string;
+}
+
+export interface MobileGuestSearchResult {
+  id: string;
+  name: string;
+  code: string;
+  address: string;
+  status: "checked-in" | "expected";
+  checkedInAt: string | null;
+}
+
+export interface MobileCheckInResult {
+  status: "checked-in" | "already-checked-in";
+  id: string;
+  checkedInAt: string | null;
+  guest: MobileGuestSearchResult;
+}
+
 export type GuestStatus = "checked-in" | "expected" | "no-show";
 
 export interface CheckInGuest {
@@ -363,6 +399,13 @@ interface CheckinRow {
   checked_in_at: string;
 }
 
+interface AddressRow {
+  city: string;
+  street?: string;
+  house_number?: string;
+  postal_code?: string;
+}
+
 interface GuestRow {
   id: number;
   guest_code: string;
@@ -372,7 +415,7 @@ interface GuestRow {
   allow_email_marketing: boolean;
   allow_post_marketing: boolean;
   created_at: string;
-  addresses?: { city: string } | { city: string }[] | null;
+  addresses?: AddressRow | AddressRow[] | null;
   checkins?: { checked_in_at: string }[] | null;
 }
 
@@ -437,7 +480,7 @@ async function getGuestRows() {
   const { data, error } = await supabase
     .from("guests")
     .select(
-      "id, guest_code, first_name, last_name, email, allow_email_marketing, allow_post_marketing, created_at, addresses(city), checkins(checked_in_at)",
+      "id, guest_code, first_name, last_name, email, allow_email_marketing, allow_post_marketing, created_at, addresses(city, street, house_number, postal_code), checkins(checked_in_at)",
     )
     .is("deleted_at", null)
     .order("last_name", { ascending: true })
@@ -446,6 +489,70 @@ async function getGuestRows() {
 
   assertSupabaseOk(error);
   return data ?? [];
+}
+
+function cleanOptional(value: string | undefined) {
+  const cleaned = value?.trim();
+  return cleaned ? cleaned : null;
+}
+
+function generateClientGuestCode() {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `G-${timestamp}-${suffix}`;
+}
+
+function normalizeScannedGuestCode(value: string) {
+  const cleaned = value.trim();
+
+  if (!cleaned) {
+    return "";
+  }
+
+  try {
+    const url = new URL(cleaned);
+    const queryCode = url.searchParams.get("code");
+
+    if (queryCode) {
+      return queryCode.trim().toUpperCase();
+    }
+
+    const pathCode = url.pathname.split("/").filter(Boolean).pop();
+    if (pathCode) {
+      return pathCode.trim().toUpperCase();
+    }
+  } catch {
+    // Raw guest codes are expected for generated QR values.
+  }
+
+  return cleaned.toUpperCase();
+}
+
+function addressLabel(address: AddressRow | null) {
+  if (!address) {
+    return "-";
+  }
+
+  const street = [address.street, address.house_number].filter(Boolean).join(" ");
+  const city = [address.postal_code, address.city].filter(Boolean).join(" ");
+
+  return [street, city].filter(Boolean).join(", ") || address.city || "-";
+}
+
+function mapMobileGuestSearchResult(
+  guest: GuestRow,
+  activeCheckin: CheckinRow | undefined,
+): MobileGuestSearchResult {
+  const address = relationOne(guest.addresses);
+
+  return {
+    id: String(guest.id),
+    name: `${guest.first_name} ${guest.last_name}`,
+    code: guest.guest_code,
+    address: addressLabel(address),
+    status: activeCheckin ? "checked-in" : "expected",
+    checkedInAt: formatTime(activeCheckin?.checked_in_at),
+  };
 }
 
 async function fetchCheckinsByEventDayIds(eventDayIds: number[]) {
@@ -632,6 +739,176 @@ async function toggleGuestMarketingInSupabase(guestId: string) {
   return {
     id: String(data.id),
     marketingActive: data.allow_email_marketing || data.allow_post_marketing,
+  };
+}
+
+async function createGuestInSupabase(
+  input: GuestRegistrationInput,
+): Promise<RegisteredGuest> {
+  const supabase = await getSupabase();
+  const addressPayload = {
+    street: input.street.trim(),
+    house_number: input.houseNumber.trim(),
+    postal_code: input.postalCode.trim(),
+    city: input.city.trim(),
+  };
+  const { data: address, error: addressError } = await supabase
+    .from("addresses")
+    .upsert(addressPayload, {
+      onConflict: "street,house_number,postal_code,city",
+    })
+    .select("id")
+    .single<{ id: number }>();
+
+  assertSupabaseOk(addressError);
+
+  if (!address) {
+    throw new Error("Address could not be saved");
+  }
+
+  const guestCode = generateClientGuestCode();
+  const { data: guest, error: guestError } = await supabase
+    .from("guests")
+    .insert({
+      guest_code: guestCode,
+      first_name: input.firstName.trim(),
+      last_name: input.lastName.trim(),
+      address_id: address.id,
+      phone: cleanOptional(input.phone),
+      email: cleanOptional(input.email),
+      allow_email_marketing: input.allowEmailMarketing ?? false,
+      allow_post_marketing: input.allowPostMarketing ?? true,
+      notes: cleanOptional(input.notes),
+    })
+    .select("id, guest_code, first_name, last_name")
+    .single<{
+      id: number;
+      guest_code: string;
+      first_name: string;
+      last_name: string;
+    }>();
+
+  assertSupabaseOk(guestError);
+
+  if (!guest) {
+    throw new Error("Guest could not be saved");
+  }
+
+  return {
+    id: String(guest.id),
+    guestCode: guest.guest_code,
+    name: `${guest.first_name} ${guest.last_name}`,
+  };
+}
+
+async function searchMobileGuestsInSupabase(
+  query: string,
+): Promise<MobileGuestSearchResult[]> {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (normalizedQuery.length < 2) {
+    return [];
+  }
+
+  const event = await getLatestEvent();
+  const day = await getLatestEventDay(event.id);
+  const [guests, checkins] = await Promise.all([
+    getGuestRows(),
+    fetchCheckinsByEventDayIds([day.id]),
+  ]);
+  const checkinByGuestId = new Map(checkins.map((checkin) => [checkin.guest_id, checkin]));
+
+  return guests
+    .filter((guest) => {
+      const address = relationOne(guest.addresses);
+      const haystack = [
+        guest.guest_code,
+        guest.first_name,
+        guest.last_name,
+        `${guest.first_name} ${guest.last_name}`,
+        guest.email ?? "",
+        addressLabel(address),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(normalizedQuery);
+    })
+    .slice(0, 8)
+    .map((guest) =>
+      mapMobileGuestSearchResult(guest, checkinByGuestId.get(guest.id)),
+    );
+}
+
+async function checkInByCodeInSupabase(
+  rawCode: string,
+  method: "qr_code" | "guest_code" | "manual_form" = "qr_code",
+): Promise<MobileCheckInResult> {
+  const code = normalizeScannedGuestCode(rawCode);
+
+  if (!code) {
+    throw new Error("Guest code is required");
+  }
+
+  const supabase = await getSupabase();
+  const event = await getLatestEvent();
+  const day = await getLatestEventDay(event.id);
+  const { data: guest, error: guestError } = await supabase
+    .from("guests")
+    .select(
+      "id, guest_code, first_name, last_name, email, allow_email_marketing, allow_post_marketing, created_at, addresses(city, street, house_number, postal_code)",
+    )
+    .ilike("guest_code", code)
+    .is("deleted_at", null)
+    .maybeSingle<GuestRow>();
+
+  assertSupabaseOk(guestError);
+
+  if (!guest) {
+    throw new Error("Guest code not found");
+  }
+
+  const { data: existingCheckin, error: existingError } = await supabase
+    .from("checkins")
+    .select("id, event_day_id, guest_id, method, checked_in_at")
+    .eq("event_day_id", day.id)
+    .eq("guest_id", guest.id)
+    .maybeSingle<CheckinRow>();
+
+  assertSupabaseOk(existingError);
+
+  if (existingCheckin) {
+    return {
+      status: "already-checked-in",
+      id: String(existingCheckin.id),
+      checkedInAt: formatTime(existingCheckin.checked_in_at),
+      guest: mapMobileGuestSearchResult(guest, existingCheckin),
+    };
+  }
+
+  const { data: checkin, error: checkinError } = await supabase
+    .from("checkins")
+    .insert({
+      event_day_id: day.id,
+      guest_id: guest.id,
+      method,
+      is_new_guest: false,
+      created_by_user_id: 1,
+    })
+    .select("id, event_day_id, guest_id, method, checked_in_at")
+    .single<CheckinRow>();
+
+  assertSupabaseOk(checkinError);
+
+  if (!checkin) {
+    throw new Error("Check-in could not be created");
+  }
+
+  return {
+    status: "checked-in",
+    id: String(checkin.id),
+    checkedInAt: formatTime(checkin.checked_in_at),
+    guest: mapMobileGuestSearchResult(guest, checkin),
   };
 }
 
@@ -977,10 +1254,45 @@ export function toggleGuestMarketing(guestId: string) {
     : toggleGuestMarketingInSupabase(guestId);
 }
 
+export function createGuest(input: GuestRegistrationInput) {
+  return shouldUseHttpApi()
+    ? apiFetch<RegisteredGuest>("/guests", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    : createGuestInSupabase(input);
+}
+
+export function searchMobileGuests(query: string) {
+  const normalizedQuery = query.trim();
+
+  if (normalizedQuery.length < 2) {
+    return Promise.resolve<MobileGuestSearchResult[]>([]);
+  }
+
+  return shouldUseHttpApi()
+    ? apiFetch<MobileGuestSearchResult[]>(
+        `/guests/search?q=${encodeURIComponent(normalizedQuery)}`,
+      )
+    : searchMobileGuestsInSupabase(normalizedQuery);
+}
+
 export function fetchCheckIns() {
   return shouldUseHttpApi()
     ? apiFetch<CheckInData>("/check-ins")
     : fetchCheckInsFromSupabase();
+}
+
+export function checkInByCode(
+  code: string,
+  method: "qr_code" | "guest_code" | "manual_form" = "qr_code",
+) {
+  return shouldUseHttpApi()
+    ? apiFetch<MobileCheckInResult>("/check-ins/by-code", {
+        method: "POST",
+        body: JSON.stringify({ code, method }),
+      })
+    : checkInByCodeInSupabase(code, method);
 }
 
 export function createCheckIn(guestId: string) {

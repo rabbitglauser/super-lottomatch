@@ -12,7 +12,33 @@ import {
   UserPlus,
 } from "lucide-react";
 
-export default function ScannerWarningPage() {
+function readParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+  fallback: string,
+) {
+  const value = params[key];
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw && raw.trim().length > 0 ? raw : fallback;
+}
+
+export default async function ScannerWarningPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const name = readParam(params, "name", "Gast");
+  const code = readParam(params, "code", "-");
+  const checkedInAt = readParam(params, "checkedInAt", "-");
+  const address = readParam(params, "address", "Adresse nicht hinterlegt");
+  const successParams = new URLSearchParams({
+    name,
+    code,
+    checkedInAt,
+    address,
+  }).toString();
+
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
       <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
@@ -28,20 +54,18 @@ export default function ScannerWarningPage() {
           </h1>
 
           <div className="mx-auto mt-3 rounded-lg border border-[#ffb3bb] bg-[#ffe8eb] px-5 py-2 text-sm font-bold text-[#e12c39]">
-            Achtung: Gast bereits eingecheckt!
+            Gast ist bereits eingecheckt.
           </div>
 
           <div className="mt-8 rounded-3xl border border-[#f0e1e3] bg-white p-6 text-left shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-xl bg-[radial-gradient(circle,#e8d5c9_0%,#6b7a6c_100%)]" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#ffe8eb] text-[#e12c39]">
+                <QrCode size={30} />
+              </div>
 
               <div>
-                <h2 className="text-2xl font-extrabold">
-                  Herr. Claudio Hübscher
-                </h2>
-                <p className="text-sm text-[#5b484b]">
-                  User Code · ID: #882-AF
-                </p>
+                <h2 className="text-2xl font-extrabold">{name}</h2>
+                <p className="text-sm text-[#5b484b]">Gast-Code: {code}</p>
               </div>
             </div>
 
@@ -49,22 +73,22 @@ export default function ScannerWarningPage() {
               <InfoRow
                 icon={<Clock3 size={26} />}
                 label="Erster Check-in heute"
-                value="08:42 Uhr"
+                value={checkedInAt}
               />
 
               <InfoRow
                 icon={<MapPin size={26} />}
-                label="Station"
-                value="Haupteingang West"
+                label="Adresse"
+                value={address}
               />
             </div>
           </div>
 
           <Link
-            href="/mobile/scanner/success"
+            href={`/mobile/scanner/success?${successParams}`}
             className="mt-6 flex h-16 items-center justify-center rounded-xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-lg font-extrabold uppercase text-white shadow-xl shadow-red-200"
           >
-            Check-in trotzdem bestätigen
+            Details bestaetigen
           </Link>
 
           <Link
@@ -75,7 +99,7 @@ export default function ScannerWarningPage() {
           </Link>
 
           <p className="mx-auto mt-8 max-w-[320px] text-sm leading-6 text-[#6f5a5d]">
-            Hinweis: Dies kann vorkommen, wenn der Gast das Gelände kurzzeitig
+            Hinweis: Dies kann vorkommen, wenn der Gast das Gelaende kurzzeitig
             verlassen hat oder die Karte versehentlich doppelt gescannt wurde.
           </p>
         </section>
@@ -111,13 +135,15 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-[#fff0f1] p-4">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-[#fff0f1] p-4">
       <div className="flex items-center gap-3 text-[#e12c39]">
         {icon}
         <span className="text-sm font-semibold text-[#5b484b]">{label}</span>
       </div>
 
-      <span className="text-base font-extrabold text-[#e12c39]">{value}</span>
+      <span className="text-right text-base font-extrabold text-[#e12c39]">
+        {value}
+      </span>
     </div>
   );
 }

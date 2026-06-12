@@ -17,18 +17,24 @@ import { GuestQRCode } from "./GuestQRCode";
 
 const DEMO_CODE = "G-DEMO-001";
 
-// Next steps to finish the registration -> QR pipeline:
-//   1. Add POST /guests to backend/main.py that returns the generated guest_code.
-//   2. Add createGuest(payload) to frontend/src/lib/api.ts.
-//   3. Wire ../page.tsx to call createGuest() and router.push(`./confirmation?code=${response.guest_code}`).
+function readParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+  fallback: string,
+) {
+  const value = params[key];
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw && raw.trim().length > 0 ? raw.trim() : fallback;
+}
+
 export default async function RegisterConfirmationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const raw = Array.isArray(params.code) ? params.code[0] : params.code;
-  const code = raw && raw.trim().length > 0 ? raw.trim() : DEMO_CODE;
+  const code = readParam(params, "code", DEMO_CODE);
+  const name = readParam(params, "name", "");
 
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
@@ -41,15 +47,19 @@ export default async function RegisterConfirmationPage({
           </div>
 
           <h1 className="mt-9 text-4xl font-extrabold tracking-[-0.04em]">
-            Bestätigung
+            Bestaetigung
           </h1>
 
           <h2 className="mt-6 text-2xl font-extrabold text-[#e12c39]">
             Registrierung abgeschlossen!
           </h2>
 
+          {name ? (
+            <p className="mt-3 text-lg font-extrabold text-[#231f20]">{name}</p>
+          ) : null}
+
           <p className="mx-auto mt-6 max-w-[340px] text-lg leading-7 text-[#6f5a5d]">
-            Bitte speichern oder fotografieren Sie diesen Code für den Einlass.
+            Bitte speichern oder fotografieren Sie diesen Code fuer den Einlass.
           </p>
 
           <div className="relative mt-8 rounded-xl bg-white p-8 shadow-sm ring-1 ring-[#f0e1e3]">
@@ -63,7 +73,7 @@ export default async function RegisterConfirmationPage({
 
           <div className="mt-8 rounded-xl border border-[#f0e1e3] bg-[#fff9f9] p-8 text-left">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#5b484b]">
-              Gäste-Code
+              Gaeste-Code
             </p>
 
             <p className="mt-3 text-5xl font-extrabold tracking-[-0.06em] text-[#e12c39]">
@@ -82,7 +92,7 @@ export default async function RegisterConfirmationPage({
               <InfoLine
                 icon={<MapPin size={24} />}
                 label="Veranstaltungsort"
-                value="STV Ennetbürgen Halle"
+                value="STV Ennetbuergen Halle"
               />
             </div>
           </div>

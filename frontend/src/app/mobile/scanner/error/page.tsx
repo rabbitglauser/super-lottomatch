@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Calendar,
   Clock3,
-  MapPin,
   QrCode,
   RotateCcw,
   Search,
@@ -12,7 +11,24 @@ import {
   UserPlus,
 } from "lucide-react";
 
-export default function ScannerErrorPage() {
+function readParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+  fallback: string,
+) {
+  const value = params[key];
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw && raw.trim().length > 0 ? raw : fallback;
+}
+
+export default async function ScannerErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const code = readParam(params, "code", "Unbekannter Code");
+
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
       <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
@@ -33,7 +49,7 @@ export default function ScannerErrorPage() {
           </h1>
 
           <div className="mx-auto mt-4 rounded-xl border border-[#ffb3bb] bg-[#ffe8eb] px-5 py-2 text-sm font-bold text-[#e12c39]">
-            QR-Code ungültig oder bereits eingecheckt
+            QR-Code ungueltig oder nicht gefunden
           </div>
 
           <div className="mt-8 rounded-3xl border border-[#f0e1e3] bg-white p-6 text-left shadow-sm">
@@ -43,33 +59,30 @@ export default function ScannerErrorPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-extrabold">Keine gültige Anmeldung</h2>
+                <h2 className="text-xl font-extrabold">Keine gueltige Anmeldung</h2>
                 <p className="mt-1 text-sm text-[#6f5a5d]">
-                  Der Code konnte nicht eindeutig bestätigt werden.
+                  Der Code konnte nicht eindeutig bestaetigt werden.
                 </p>
               </div>
             </div>
 
             <div className="mt-6 space-y-4">
-              <InfoRow
-                icon={<Clock3 size={24} />}
-                label="Möglicher Grund"
-                value="Code wurde bereits gescannt"
-              />
+              <InfoRow icon={<QrCode size={24} />} label="Gescannter Code" value={code} />
 
               <InfoRow
-                icon={<MapPin size={24} />}
-                label="Station"
-                value="Haupteingang West"
+                icon={<Clock3 size={24} />}
+                label="Moeglicher Grund"
+                value="Gast ist nicht registriert"
               />
             </div>
           </div>
 
           <Link
-            href="/mobile/scanner/success"
-            className="mt-8 flex h-16 items-center justify-center rounded-2xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-lg font-extrabold uppercase text-white shadow-xl shadow-red-200"
+            href="/mobile/search"
+            className="mt-8 flex h-16 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-lg font-extrabold uppercase text-white shadow-xl shadow-red-200"
           >
-            Check-in trotzdem bestätigen
+            <Search size={24} />
+            Manuell suchen
           </Link>
 
           <Link
@@ -87,11 +100,6 @@ export default function ScannerErrorPage() {
             <UserPlus size={20} />
             Neuen Gast registrieren
           </Link>
-
-          <p className="mx-auto mt-8 max-w-[320px] text-sm leading-6 text-[#6f5a5d]">
-            Hinweis: Das kann passieren, wenn der Gast das Gelände kurz verlassen
-            hat oder der QR-Code versehentlich doppelt gescannt wurde.
-          </p>
         </section>
 
         <BottomNavigation />
@@ -110,13 +118,13 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-[#fff0f1] p-4">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#fff0f1] p-4">
       <div className="flex items-center gap-3 text-[#e12c39]">
         {icon}
         <span className="text-sm font-semibold text-[#5b484b]">{label}</span>
       </div>
 
-      <span className="text-sm font-extrabold">{value}</span>
+      <span className="text-right text-sm font-extrabold">{value}</span>
     </div>
   );
 }

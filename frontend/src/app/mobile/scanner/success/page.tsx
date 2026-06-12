@@ -11,7 +11,27 @@ import {
   UserPlus,
 } from "lucide-react";
 
-export default function ScannerSuccessPage() {
+function readParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+  fallback: string,
+) {
+  const value = params[key];
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw && raw.trim().length > 0 ? raw : fallback;
+}
+
+export default async function ScannerSuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const name = readParam(params, "name", "Gast");
+  const code = readParam(params, "code", "-");
+  const checkedInAt = readParam(params, "checkedInAt", "");
+  const address = readParam(params, "address", "Adresse nicht hinterlegt");
+
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
       <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
@@ -37,14 +57,14 @@ export default function ScannerSuccessPage() {
               <User size={30} />
             </div>
 
-            <h2 className="mt-6 text-3xl font-extrabold">Samuel Glauser</h2>
+            <h2 className="mt-6 text-3xl font-extrabold">{name}</h2>
 
             <div className="mx-auto mt-4 flex w-fit items-center gap-3 rounded-full bg-[#f3eeee] px-6 py-3">
               <span className="text-xs font-bold uppercase tracking-[0.15em] text-[#5b484b]">
                 Gast-Code
               </span>
               <span className="text-xl font-extrabold text-[#e12c39]">
-                SL-8821
+                {code}
               </span>
             </div>
           </div>
@@ -53,13 +73,13 @@ export default function ScannerSuccessPage() {
             <InfoCard
               icon={<Star size={24} fill="currentColor" />}
               label="Status"
-              value="Zweite Teilnahme"
+              value={checkedInAt ? `Heute ${checkedInAt}` : "Eingecheckt"}
             />
 
             <InfoCard
               icon={<Award size={24} fill="currentColor" />}
-              label="Tickets"
-              value="2 Lose insgesamt"
+              label="Adresse"
+              value={address}
             />
           </div>
 

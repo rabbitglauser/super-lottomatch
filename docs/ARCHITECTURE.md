@@ -137,7 +137,7 @@ The audience is German-speaking (majority aged 40+). Date and number formatting 
 | Validation     | Pydantic                            |
 | Language       | Python 3.12 (PEP 8, line length 88) |
 | Format / Lint  | Ruff (`format` + `check`)           |
-| Tests          | pytest + pytest-asyncio + httpx     |
+| Tests          | pytest + pytest-asyncio + httpx + pytest-cov |
 
 ### Layered Structure
 
@@ -145,30 +145,24 @@ The backend follows a classic layered design. Each layer has one responsibility,
 
 ```
 backend/
-├── main.py            # FastAPI app, CORS, router registration
-├── config.py          # Settings / env var loading
+├── main.py            # Compatibility entrypoint for uvicorn main:app
 ├── database.py        # SQLAlchemy engine + session factory
-├── routers/           # HTTP layer — request parsing, response shaping
-│   ├── auth.py
-│   ├── guests.py
-│   ├── checkins.py
-│   ├── draws.py
-│   └── events.py
-├── services/          # Business logic — orchestrates models
-│   ├── raffle_service.py
-│   ├── guest_service.py
-│   └── export_service.py
-├── models/            # SQLAlchemy ORM models
-│   └── (Guest, Address, LottoEvent, EventDay, CheckIn, Prize, Draw)
-├── schemas/           # Pydantic request/response DTOs
-└── tests/             # pytest suite (SQLite in-memory)
+├── app/
+│   ├── factory.py     # FastAPI app creation, CORS, router registration
+│   ├── config.py      # Settings / env var loading
+│   ├── routers/       # HTTP layer — request parsing, response shaping
+│   ├── services/      # Business logic and SQL orchestration
+│   ├── models/        # Lightweight domain records used by services/mappers
+│   ├── schemas.py     # Pydantic request/response DTOs
+│   └── utils.py       # Shared formatting, validation, and QR-code helpers
+└── tests/             # pytest suite with service/unit coverage
 ```
 
 | Layer    | Knows about       | Responsibility                                  |
 |----------|-------------------|-------------------------------------------------|
 | Router   | Schemas, services | HTTP I/O, status codes, dependency injection    |
-| Service  | Models, schemas   | Business rules (duplicate check-in, random draw)|
-| Model    | Database only     | ORM mapping and relationships                   |
+| Service  | Models, schemas   | Business rules and SQL-backed workflows         |
+| Model    | —                 | Domain records used by mappers/services         |
 | Schema   | —                 | Pydantic validation; never imports models       |
 
 ### Authentication
@@ -207,7 +201,7 @@ Init scripts under `db/init/` are mounted into the MySQL container's entrypoint,
 ### 6.2 Check-In
 
 1. At the venue, an admin scans the QR (or types the `guest_code` manually).
-2. Frontend calls `POST /checkins/{guest_code}` with the active `event_day_id`.
+2. Frontend calls `POST /check-ins/by-code` with the scanned QR/guest code.
 3. The check-in service rejects duplicates (unique constraint on `guest_id` + `event_day_id`) and records the method (`qr_code`, `manual_form`, `guest_code`).
 4. Successful check-ins update the dashboard's live counters.
 

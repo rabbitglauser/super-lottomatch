@@ -8,9 +8,9 @@
 SuperLottomatch currently uses a pragmatic validation approach in CI:
 
 - **Frontend:** linting plus production build verification
-- **Backend:** linting plus pytest smoke tests
+- **Backend:** linting plus pytest unit/service tests with an enforced coverage gate
 
-Additional frontend tests and coverage gates can be added as the product grows.
+Additional frontend component tests can be added as the product grows.
 
 ---
 
@@ -18,7 +18,7 @@ Additional frontend tests and coverage gates can be added as the product grows.
 
 | Component | Current CI Checks | Tool |
 |-----------|-------------------|------|
-| Backend (FastAPI) | Ruff + pytest | `ruff`, `pytest` |
+| Backend (FastAPI) | Ruff + pytest + coverage fail-under | `ruff`, `pytest`, `pytest-cov` |
 | Frontend (Next.js) | ESLint + Next.js build | `eslint`, `next build` |
 
 ---
@@ -43,8 +43,8 @@ pip install -r requirements.txt
 ruff check .
 pytest
 
-# Run with coverage report
-pytest --cov=. --cov-report=term-missing
+# Run with the configured coverage gate
+pytest
 
 # Run a specific test file
 pytest tests/test_main.py
@@ -55,11 +55,13 @@ pytest -v
 
 ### Current Implementation Status
 
-The current backend test suite is a minimal FastAPI smoke-test setup for the existing `main.py` app:
+The backend test suite covers the modular FastAPI app without requiring a live database:
 
 - `backend/tests/conftest.py` provides a shared async `httpx` client fixture
-- `backend/tests/test_main.py` verifies the root endpoint response
-- Additional endpoint, database, and service tests can be added as the backend grows
+- `backend/tests/test_main.py` verifies root and authentication endpoints
+- `backend/tests/test_services.py` covers service behavior with queued fake database results
+- `backend/tests/test_utils.py` covers formatting, validation, QR-code parsing, and domain mapping helpers
+- `backend/pytest.ini` enforces `--cov-fail-under=75`; the latest local run reached 96.28 %
 
 ### What's Covered
 
@@ -75,20 +77,18 @@ The current backend test suite is a minimal FastAPI smoke-test setup for the exi
 
 ### Test Database
 
-- The current smoke test does **not** require a live database connection
-- The SQLAlchemy engine is created from environment defaults, but the test only exercises the root endpoint
-- Broader database-backed tests can be added once dedicated test fixtures are introduced
+- The current unit/service tests do **not** require a live database connection
+- SQL-backed services are tested through a fake DB object that records queries and returns queued rows
+- Full integration tests against PostgreSQL/Supabase can be added once dedicated test fixtures are introduced
 
 ### Example Test Structure
 
 ```
 backend/tests/
 ├── conftest.py           # Shared fixtures (test client, DB session)
-├── test_guests.py        # Guest CRUD endpoints
-├── test_attendance.py    # Check-in and attendance endpoints
-├── test_raffle.py        # Raffle draw logic
-├── test_auth.py          # Authentication endpoints
-└── test_export.py        # CSV export
+├── test_main.py          # Root/auth endpoint smoke tests
+├── test_services.py      # Service behavior and SQL orchestration
+└── test_utils.py         # Utility and domain mapping helpers
 ```
 
 ---

@@ -1,8 +1,5 @@
 """Pydantic schemas for request/response validation."""
-from pydantic import BaseModel, EmailStr
-from datetime import date, datetime
-from decimal import Decimal
-from typing import Optional
+from pydantic import BaseModel
 from enum import Enum
 
 
@@ -45,8 +42,8 @@ class CheckInGuestResponse(BaseModel):
     code: str
     city: str
     status: CheckInStatus
-    checkedInAt: Optional[str]
-    time: Optional[str]
+    checkedInAt: str | None
+    time: str | None
     avatarTone: str
 
 
@@ -65,7 +62,7 @@ class CheckInsResponse(BaseModel):
 
 class CheckInCreateResponse(BaseModel):
     id: str
-    checkedInAt: Optional[str]
+    checkedInAt: str | None
 
 
 class EventDayResponse(BaseModel):
@@ -82,9 +79,9 @@ class StatResponse(BaseModel):
     variant: str
     label: str
     value: str
-    delta: Optional[str] = None
-    progress: Optional[int] = None
-    subtitle: Optional[str] = None
+    delta: str | None = None
+    progress: int | None = None
+    subtitle: str | None = None
 
 
 class LiveUpdateResponse(BaseModel):
@@ -120,7 +117,7 @@ class KPIResponse(BaseModel):
     value: str
     subtitle: str
     subtitleTone: str
-    progress: Optional[int] = None
+    progress: int | None = None
 
 
 class PrizeOverviewResponse(BaseModel):
@@ -135,7 +132,7 @@ class PrizeOverviewResponse(BaseModel):
 class PrizesResponse(BaseModel):
     kpis: list[KPIResponse]
     overview: PrizeOverviewResponse
-    nextHighlight: Optional[PrizeResponse]
+    nextHighlight: PrizeResponse | None
     prizes: list[PrizeResponse]
 
 

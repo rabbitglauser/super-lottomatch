@@ -1,5 +1,4 @@
 """Business logic and database service layer."""
-from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from sqlalchemy import and_, func, text
@@ -7,7 +6,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from models import (
-    Guest, CheckIn, EventDay, LottoEvent, Prize, Draw, User,
+    Guest, CheckIn, EventDay, LottoEvent, Prize, Draw,
     CheckInMethod, Address
 )
 
@@ -112,7 +111,7 @@ class GuestService:
         granted = db.query(Guest).filter(
             and_(
                 Guest.deleted_at.is_(None),
-                (Guest.allow_email_marketing | Guest.allow_post_marketing) == True
+                (Guest.allow_email_marketing | Guest.allow_post_marketing)
             )
         ).count()
         return granted, total

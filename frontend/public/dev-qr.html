@@ -48,7 +48,7 @@
     .controls button:hover { background: #8e0014; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 16px;
     }
     .card {
@@ -59,7 +59,13 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       break-inside: avoid;
     }
-    .card canvas, .card img { display: block; margin: 0 auto 8px; max-width: 100%; height: auto; }
+    .card canvas, .card img {
+      display: block;
+      margin: 0 auto 12px;
+      max-width: 100%;
+      height: auto;
+      background: white;
+    }
     .card .code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; color: #555; }
     .card .name { font-weight: 600; margin-top: 4px; font-size: 15px; }
     #custom-area { margin-top: 32px; }
@@ -127,7 +133,15 @@
       codeEl.textContent = code;
       card.appendChild(codeEl);
       parent.appendChild(card);
-      QRCode.toCanvas(canvas, code, { width: 200, margin: 1, errorCorrectionLevel: "M" });
+      QRCode.toCanvas(canvas, code, {
+        width: 260,
+        margin: 4,
+        errorCorrectionLevel: "Q",
+        color: {
+          dark: "#000000",
+          light: "#ffffff",
+        },
+      });
     }
 
     const grid = document.getElementById("grid");

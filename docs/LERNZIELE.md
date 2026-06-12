@@ -61,10 +61,10 @@ Legende: `[x]` erledigt · `[~]` teilweise · `[ ]` offen
 | Kriterium | P | Status | Nachweis |
 |---|---|---|---|
 | Clean Code | 1 | [x] | Ruff/ESLint konfiguriert, Type Hints |
-| Sinnvolle Fehlerbehandlung | 1 | [~] | Backend dünn — bisher nur `main.py` + `database.py` |
-| Logische Struktur | 1 | [~] | Frontend/Backend/DB sauber getrennt, aber Backend-Modularisierung (`routers/`, `services/`, `models/`, `schemas/`) gemäss `CLAUDE.md` noch **nicht** umgesetzt |
+| Sinnvolle Fehlerbehandlung | 1 | [x] | Backend-Services validieren Pflichtfelder, behandeln fehlende Datenbanktreffer und geben passende HTTP-Fehler zurück |
+| Logische Struktur | 1 | [x] | Backend in `backend/app/routers`, `services`, `models` und `schemas.py` modularisiert; `main.py` ist nur noch der FastAPI-Einstiegspunkt |
 
-**Zwischensumme: 1–2 / 3** — TODO: Backend in Routers/Services/Models aufteilen.
+**Zwischensumme: 3 / 3**
 
 ## CI/CD (2 P)
 
@@ -79,10 +79,10 @@ Legende: `[x]` erledigt · `[~]` teilweise · `[ ]` offen
 
 | Kriterium | P | Status | Nachweis |
 |---|---|---|---|
-| Unit Tests mit >75 % Coverage | 1 | [x] | Backend: nur `backend/tests/test_main.py` — zu dünn. Frontend: **kein** Jest-Setup im `frontend/src/` sichtbar |
+| Unit Tests mit >75 % Coverage | 1 | [x] | Backend: 29 pytest-Tests mit `pytest-cov` Gate `--cov-fail-under=75`; letzter Lauf 96.28 % Coverage |
 | Tests automatisch in CI, Build failed bei Fehler | 1 | [x] | CI-Pipeline enforced |
 
-**Zwischensumme: 1 / 2** — TODO: Frontend-Tests aufsetzen, Backend-Coverage hochziehen.
+**Zwischensumme: 2 / 2** — Frontend-Komponententests bleiben eine optionale Verbesserung.
 
 ## Schlusspräsentation (4 P)
 
@@ -135,9 +135,7 @@ Legende: `[x]` erledigt · `[~]` teilweise · `[ ]` offen
 ## Offene Punkte / TODOs
 
 1. **Scrum Events durchführen und protokollieren** — Sprint Planning, Daily Scrum, Sprint Review, Retrospektive (8 P).
-2. **Backend modularisieren** (`routers/`, `services/`, `models/`, `schemas/`) — bringt 1 P bei Source Code.
-3. **Frontend-Tests** mit Jest + React Testing Library aufsetzen — bringt 1 P bei Tests.
-4. **Backend-Coverage** über 75 % heben.
-5. **End-to-End-Verifikation** der Kernflüsse (Registrierung, QR Check-in, Auslosung) — sichert die fehlenden 1–2 P bei Projekterfüllung.
-6. **Schlusspräsentation** vorbereiten (4 P).
-7. **Klassenpräsentation** für gutes Ranking polieren (2 P).
+2. **Frontend-Tests** mit Jest + React Testing Library aufsetzen — optionale Absicherung für UI-Flows.
+3. **End-to-End-Verifikation** der Kernflüsse (Registrierung, QR Check-in, Auslosung) — sichert die fehlenden 1–2 P bei Projekterfüllung.
+4. **Schlusspräsentation** vorbereiten (4 P).
+5. **Klassenpräsentation** für gutes Ranking polieren (2 P).

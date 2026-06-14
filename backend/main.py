@@ -2,8 +2,9 @@ import os
 import secrets
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
+from urllib.parse import parse_qs, urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,6 +51,47 @@ class LoginResponse(BaseModel):
     id: int
     name: str
     email: str
+
+
+class GuestRegistrationRequest(BaseModel):
+    firstName: str
+    lastName: str
+    street: str
+    houseNumber: str
+    postalCode: str
+    city: str
+    phone: str | None = None
+    email: str | None = None
+    allowEmailMarketing: bool = False
+    allowPostMarketing: bool = True
+    notes: str | None = None
+
+
+class GuestRegistrationResponse(BaseModel):
+    id: str
+    guestCode: str
+    name: str
+
+
+class GuestSearchResult(BaseModel):
+    id: str
+    name: str
+    code: str
+    address: str
+    status: Literal["checked-in", "expected"]
+    checkedInAt: str | None
+
+
+class CheckInByCodeRequest(BaseModel):
+    code: str
+    method: Literal["qr_code", "guest_code", "manual_form"] = "qr_code"
+
+
+class CheckInByCodeResponse(BaseModel):
+    status: Literal["checked-in", "already-checked-in"]
+    id: str
+    checkedInAt: str | None
+    guest: GuestSearchResult
 
 
 def verify_password(password: str, stored_password: str) -> bool:
@@ -118,6 +160,92 @@ def month_label(value: date) -> str:
         "DEZ",
     ]
     return labels[value.month - 1]
+
+
+def clean_optional(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned if cleaned else None
+
+
+def require_text(value: str, field_name: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise HTTPException(status_code=422, detail=f"{field_name} is required")
+    return cleaned
+
+
+def normalize_guest_code(value: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise HTTPException(status_code=422, detail="Guest code is required")
+
+    if "://" in cleaned or cleaned.startswith("/"):
+        parsed = urlparse(cleaned)
+        query_code = parse_qs(parsed.query).get("code", [None])[0]
+        if query_code:
+            return query_code.strip().upper()
+        path_code = parsed.path.rstrip("/").split("/")[-1]
+        if path_code:
+            return path_code.strip().upper()
+
+    return cleaned.strip().upper()
+
+
+def address_label(row: Any) -> str:
+    return f"{row.street} {row.house_number}, {row.postal_code} {row.city}"
+
+
+def map_guest_search_result(row: Any) -> GuestSearchResult:
+    checked_in_at = format_time(row.checked_in_at)
+    return GuestSearchResult(
+        id=str(row.id),
+        name=f"{row.first_name} {row.last_name}",
+        code=row.guest_code,
+        address=address_label(row),
+        status="checked-in" if row.checkin_id else "expected",
+        checkedInAt=checked_in_at,
+    )
+
+
+def generate_guest_code(db: Session) -> str:
+    for _ in range(10):
+        code = f"G-{secrets.randbelow(1_000_000):06d}"
+        existing = db.execute(
+            text("select 1 from guests where guest_code = :guest_code"),
+            {"guest_code": code},
+        ).first()
+        if existing is None:
+            return code
+
+    raise HTTPException(status_code=500, detail="Guest code could not be generated")
+
+
+def get_guest_for_checkin(db: Session, guest_code: str, event_day_id: int):
+    return db.execute(
+        text(
+            """
+            select
+              g.id,
+              g.guest_code,
+              g.first_name,
+              g.last_name,
+              a.street,
+              a.house_number,
+              a.postal_code,
+              a.city,
+              c.id as checkin_id,
+              c.checked_in_at
+            from guests g
+            join addresses a on a.id = g.address_id
+            left join checkins c
+              on c.guest_id = g.id and c.event_day_id = :event_day_id
+            where upper(g.guest_code) = :guest_code and g.deleted_at is null
+            """
+        ),
+        {"guest_code": guest_code, "event_day_id": event_day_id},
+    ).first()
 
 
 def latest_event(db: Session):
@@ -348,6 +476,137 @@ def get_guests(db: Session = Depends(get_db)):
     ]
 
 
+@app.post("/guests", response_model=GuestRegistrationResponse)
+def create_guest(
+    payload: GuestRegistrationRequest,
+    db: Session = Depends(get_db),
+) -> GuestRegistrationResponse:
+    first_name = require_text(payload.firstName, "firstName")
+    last_name = require_text(payload.lastName, "lastName")
+    street = require_text(payload.street, "street")
+    house_number = require_text(payload.houseNumber, "houseNumber")
+    postal_code = require_text(payload.postalCode, "postalCode")
+    city = require_text(payload.city, "city")
+
+    address = db.execute(
+        text(
+            """
+            insert into addresses (street, house_number, postal_code, city)
+            values (:street, :house_number, :postal_code, :city)
+            on conflict (street, house_number, postal_code, city)
+            do update set street = excluded.street
+            returning id
+            """
+        ),
+        {
+            "street": street,
+            "house_number": house_number,
+            "postal_code": postal_code,
+            "city": city,
+        },
+    ).first()
+
+    if address is None:
+        raise HTTPException(status_code=500, detail="Address could not be saved")
+
+    guest_code = generate_guest_code(db)
+    guest = db.execute(
+        text(
+            """
+            insert into guests (
+              guest_code,
+              first_name,
+              last_name,
+              address_id,
+              phone,
+              email,
+              allow_email_marketing,
+              allow_post_marketing,
+              notes
+            )
+            values (
+              :guest_code,
+              :first_name,
+              :last_name,
+              :address_id,
+              :phone,
+              :email,
+              :allow_email_marketing,
+              :allow_post_marketing,
+              :notes
+            )
+            returning id, guest_code, first_name, last_name
+            """
+        ),
+        {
+            "guest_code": guest_code,
+            "first_name": first_name,
+            "last_name": last_name,
+            "address_id": address.id,
+            "phone": clean_optional(payload.phone),
+            "email": clean_optional(payload.email),
+            "allow_email_marketing": payload.allowEmailMarketing,
+            "allow_post_marketing": payload.allowPostMarketing,
+            "notes": clean_optional(payload.notes),
+        },
+    ).first()
+    db.commit()
+
+    if guest is None:
+        raise HTTPException(status_code=500, detail="Guest could not be saved")
+
+    return GuestRegistrationResponse(
+        id=str(guest.id),
+        guestCode=guest.guest_code,
+        name=f"{guest.first_name} {guest.last_name}",
+    )
+
+
+@app.get("/guests/search", response_model=list[GuestSearchResult])
+def search_guests(q: str = "", db: Session = Depends(get_db)) -> list[GuestSearchResult]:
+    query = q.strip()
+    if len(query) < 2:
+        return []
+
+    day = latest_event_day(db)
+    pattern = f"%{query}%"
+    rows = db.execute(
+        text(
+            """
+            select
+              g.id,
+              g.guest_code,
+              g.first_name,
+              g.last_name,
+              a.street,
+              a.house_number,
+              a.postal_code,
+              a.city,
+              c.id as checkin_id,
+              c.checked_in_at
+            from guests g
+            join addresses a on a.id = g.address_id
+            left join checkins c
+              on c.guest_id = g.id and c.event_day_id = :event_day_id
+            where g.deleted_at is null
+              and (
+                g.guest_code ilike :pattern
+                or g.first_name ilike :pattern
+                or g.last_name ilike :pattern
+                or coalesce(g.email, '') ilike :pattern
+                or a.city ilike :pattern
+                or concat(g.first_name, ' ', g.last_name) ilike :pattern
+              )
+            order by c.checked_in_at desc nulls last, g.last_name, g.first_name
+            limit 8
+            """
+        ),
+        {"pattern": pattern, "event_day_id": day.id},
+    ).all()
+
+    return [map_guest_search_result(row) for row in rows]
+
+
 @app.patch("/guests/{guest_id}/marketing")
 def update_guest_marketing(guest_id: int, db: Session = Depends(get_db)):
     row = db.execute(
@@ -440,6 +699,75 @@ def get_check_ins(event_day_id: int | None = None, db: Session = Depends(get_db)
         },
         "guests": guests,
     }
+
+
+@app.post("/check-ins/by-code", response_model=CheckInByCodeResponse)
+def create_check_in_by_code(
+    payload: CheckInByCodeRequest,
+    db: Session = Depends(get_db),
+) -> CheckInByCodeResponse:
+    day = latest_event_day(db)
+    guest_code = normalize_guest_code(payload.code)
+    guest = get_guest_for_checkin(db, guest_code, day.id)
+
+    if guest is None:
+        raise HTTPException(status_code=404, detail="Guest code not found")
+
+    if guest.checkin_id is not None:
+        guest_result = map_guest_search_result(guest)
+        return CheckInByCodeResponse(
+            status="already-checked-in",
+            id=str(guest.checkin_id),
+            checkedInAt=guest_result.checkedInAt,
+            guest=guest_result,
+        )
+
+    checkin = db.execute(
+        text(
+            """
+            insert into checkins (
+              event_day_id,
+              guest_id,
+              method,
+              is_new_guest,
+              created_by_user_id
+            )
+            values (
+              :event_day_id,
+              :guest_id,
+              cast(:method as checkin_method),
+              false,
+              1
+            )
+            returning id, checked_in_at
+            """
+        ),
+        {
+            "event_day_id": day.id,
+            "guest_id": guest.id,
+            "method": payload.method,
+        },
+    ).first()
+    db.commit()
+
+    if checkin is None:
+        raise HTTPException(status_code=500, detail="Check-in could not be created")
+
+    guest_result = GuestSearchResult(
+        id=str(guest.id),
+        name=f"{guest.first_name} {guest.last_name}",
+        code=guest.guest_code,
+        address=address_label(guest),
+        status="checked-in",
+        checkedInAt=format_time(checkin.checked_in_at),
+    )
+
+    return CheckInByCodeResponse(
+        status="checked-in",
+        id=str(checkin.id),
+        checkedInAt=guest_result.checkedInAt,
+        guest=guest_result,
+    )
 
 
 @app.post("/check-ins/{guest_id}")

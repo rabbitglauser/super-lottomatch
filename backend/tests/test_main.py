@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from database import get_db
-from main import app
+from main import app, normalize_guest_code
 
 
 class FakeExecuteResult:
@@ -115,3 +115,11 @@ async def test_login_rejects_unknown_or_inactive_user(client):
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Ungültige Zugangsdaten"}
+
+
+def test_normalize_guest_code_accepts_raw_codes_and_urls():
+    assert normalize_guest_code(" g-000123 ") == "G-000123"
+    assert (
+        normalize_guest_code("https://example.ch/mobile/register/confirmation?code=g-000456")
+        == "G-000456"
+    )

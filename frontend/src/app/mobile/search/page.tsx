@@ -1,16 +1,83 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Bell,
   Calendar,
   CheckCircle,
   CircleUser,
+  Loader2,
   QrCode,
   Search,
   UserPlus,
 } from "lucide-react";
 
+import {
+  checkInByCode,
+  searchMobileGuests,
+  type MobileGuestSearchResult,
+} from "@/lib/api";
+
+function resultParams(result: Awaited<ReturnType<typeof checkInByCode>>) {
+  return new URLSearchParams({
+    name: result.guest.name,
+    code: result.guest.code,
+    checkedInAt: result.checkedInAt ?? "",
+    address: result.guest.address,
+  });
+}
+
 export default function MobileSearchPage() {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<MobileGuestSearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeCode, setActiveCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length < 2) {
+      setResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const timeout = window.setTimeout(() => {
+      searchMobileGuests(trimmedQuery)
+        .then(setResults)
+        .catch(() => setError("Suche konnte nicht geladen werden."))
+        .finally(() => setIsLoading(false));
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+
+  const handleCheckIn = async (guest: MobileGuestSearchResult) => {
+    setActiveCode(guest.code);
+    setError(null);
+
+    try {
+      const result = await checkInByCode(guest.code, "guest_code");
+      const params = resultParams(result).toString();
+      router.push(
+        result.status === "already-checked-in"
+          ? `/mobile/scanner/warning?${params}`
+          : `/mobile/scanner/success?${params}`,
+      );
+    } catch {
+      router.push(`/mobile/scanner/error?code=${encodeURIComponent(guest.code)}`);
+    } finally {
+      setActiveCode(null);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
       <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#fbf7f8]">
@@ -31,52 +98,55 @@ export default function MobileSearchPage() {
             </p>
           </div>
 
-          <div className="mt-8 flex h-16 items-center gap-3 rounded-2xl bg-white px-5 shadow-sm ring-1 ring-[#f0e1e3]">
+          <label className="mt-8 flex h-16 items-center gap-3 rounded-2xl bg-white px-5 shadow-sm ring-1 ring-[#f0e1e3]">
             <Search size={24} className="text-[#9b8b8d]" />
             <input
-              placeholder="z.B. Samuel Glauser"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="z.B. Hans Mueller oder G-000001"
               className="w-full bg-transparent text-base outline-none placeholder:text-[#bdaeb0]"
             />
-          </div>
+          </label>
 
           <div className="mt-8">
-            <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.25em] text-[#5b484b]">
-              Suchresultate
-            </p>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#5b484b]">
+                Suchresultate
+              </p>
+              {isLoading ? (
+                <Loader2 className="size-5 animate-spin text-[#e12c39]" />
+              ) : null}
+            </div>
+
+            {error ? (
+              <p className="rounded-2xl bg-white p-5 text-sm font-bold text-[#e12c39] shadow-sm ring-1 ring-[#f0e1e3]">
+                {error}
+              </p>
+            ) : null}
 
             <div className="space-y-4">
-              <GuestResult
-                name="Samuel Glauser"
-                code="SL-8821"
-                address="Hauptstrasse 12, 6370 Stans"
-                status="Noch nicht eingecheckt"
-                href="/mobile/scanner/success"
-              />
-
-              <GuestResult
-                name="Claudio Hübscher"
-                code="882-AF"
-                address="Bahnhofstrasse 4, 6300 Zug"
-                status="Bereits eingecheckt"
-                href="/mobile/scanner/warning"
-                warning
-              />
-
-              <GuestResult
-                name="Amarah Warren"
-                code="REG-A04"
-                address="Dorfstrasse 8, 6373 Ennetbürgen"
-                status="Noch nicht eingecheckt"
-                href="/mobile/scanner/success"
-              />
+              {results.map((guest) => (
+                <GuestResult
+                  key={guest.id}
+                  guest={guest}
+                  isSubmitting={activeCode === guest.code}
+                  onCheckIn={() => handleCheckIn(guest)}
+                />
+              ))}
             </div>
+
+            {!isLoading && query.trim().length >= 2 && results.length === 0 ? (
+              <div className="rounded-2xl bg-white p-5 text-sm font-bold text-[#6f5a5d] shadow-sm ring-1 ring-[#f0e1e3]">
+                Kein passender Gast gefunden.
+              </div>
+            ) : null}
           </div>
 
           <Link
-            href="/mobile/scanner/error"
+            href="/mobile/register"
             className="mt-8 flex h-14 items-center justify-center rounded-xl bg-white text-base font-extrabold text-[#e12c39] shadow-sm ring-1 ring-[#f0e1e3]"
           >
-            Kein passender Gast gefunden?
+            Neuen Gast registrieren
           </Link>
         </section>
 
@@ -102,47 +172,53 @@ function MobileHeader() {
 }
 
 function GuestResult({
-  name,
-  code,
-  address,
-  status,
-  href,
-  warning = false,
+  guest,
+  isSubmitting,
+  onCheckIn,
 }: {
-  name: string;
-  code: string;
-  address: string;
-  status: string;
-  href: string;
-  warning?: boolean;
+  guest: MobileGuestSearchResult;
+  isSubmitting: boolean;
+  onCheckIn: () => void;
 }) {
+  const isCheckedIn = guest.status === "checked-in";
+
   return (
-    <Link
-      href={href}
-      className="block rounded-2xl border border-[#f0e1e3] bg-white p-5 shadow-sm"
+    <button
+      type="button"
+      onClick={onCheckIn}
+      disabled={isSubmitting}
+      className="block w-full rounded-2xl border border-[#f0e1e3] bg-white p-5 text-left shadow-sm transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-extrabold">{name}</h2>
-          <p className="mt-1 text-sm text-[#6f5a5d]">{address}</p>
+          <h2 className="text-xl font-extrabold">{guest.name}</h2>
+          <p className="mt-1 text-sm text-[#6f5a5d]">{guest.address}</p>
         </div>
 
         <span className="rounded-full bg-[#f3eeee] px-3 py-1 text-xs font-extrabold text-[#e12c39]">
-          {code}
+          {guest.code}
         </span>
       </div>
 
       <div
         className={`mt-5 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold ${
-          warning
+          isCheckedIn
             ? "bg-[#ffe8eb] text-[#e12c39]"
             : "bg-[#f0fff4] text-[#1d7a3a]"
         }`}
       >
-        <CheckCircle size={20} />
-        {status}
+        {isSubmitting ? (
+          <Loader2 size={20} className="animate-spin" />
+        ) : (
+          <CheckCircle size={20} />
+        )}
+        {isSubmitting
+          ? "Check-in laeuft..."
+          : isCheckedIn
+            ? `Bereits eingecheckt${guest.checkedInAt ? ` um ${guest.checkedInAt}` : ""}`
+            : "Antippen zum Check-in"}
       </div>
-    </Link>
+    </button>
   );
 }
 

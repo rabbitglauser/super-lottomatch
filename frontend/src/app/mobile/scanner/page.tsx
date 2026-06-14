@@ -1,15 +1,175 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   Calendar,
   Flashlight,
   Info,
+  Loader2,
   QrCode,
   Search,
   UserPlus,
 } from "lucide-react";
 
+import { checkInByCode } from "@/lib/api";
+
+type DetectedBarcode = { rawValue: string };
+type BarcodeDetectorInstance = {
+  detect: (source: HTMLVideoElement) => Promise<DetectedBarcode[]>;
+};
+type BarcodeDetectorConstructor = new (options?: {
+  formats?: string[];
+}) => BarcodeDetectorInstance;
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorConstructor;
+  }
+}
+
+function resultParams(result: Awaited<ReturnType<typeof checkInByCode>>) {
+  return new URLSearchParams({
+    name: result.guest.name,
+    code: result.guest.code,
+    checkedInAt: result.checkedInAt ?? "",
+    address: result.guest.address,
+  });
+}
+
 export default function MobileScannerPage() {
+  const router = useRouter();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const isProcessingRef = useRef(false);
+  const [cameraState, setCameraState] = useState<
+    "idle" | "starting" | "active" | "blocked" | "unsupported"
+  >("idle");
+  const [manualCode, setManualCode] = useState("");
+  const [message, setMessage] = useState("Kamera wird vorbereitet...");
+
+  const stopCamera = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  }, []);
+
+  const processCode = useCallback(
+    async (rawCode: string, method: "qr_code" | "guest_code" = "qr_code") => {
+      const code = rawCode.trim();
+
+      if (!code || isProcessingRef.current) {
+        return;
+      }
+
+      isProcessingRef.current = true;
+      setMessage("Check-in wird verarbeitet...");
+
+      try {
+        const result = await checkInByCode(code, method);
+        const params = resultParams(result).toString();
+        stopCamera();
+        router.push(
+          result.status === "already-checked-in"
+            ? `/mobile/scanner/warning?${params}`
+            : `/mobile/scanner/success?${params}`,
+        );
+      } catch {
+        stopCamera();
+        router.push(`/mobile/scanner/error?code=${encodeURIComponent(code)}`);
+      }
+    },
+    [router, stopCamera],
+  );
+
+  const startCamera = useCallback(async () => {
+    if (streamRef.current) {
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || !window.BarcodeDetector) {
+      setCameraState("unsupported");
+      setMessage("QR-Erkennung ist in diesem Browser nicht verfuegbar.");
+      return;
+    }
+
+    setCameraState("starting");
+    setMessage("Kamera wird gestartet...");
+
+    try {
+      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      const video = videoRef.current;
+
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      streamRef.current = stream;
+      video.srcObject = stream;
+      await video.play();
+      setCameraState("active");
+      setMessage("QR-Code im Feld ausrichten");
+
+      const scan = async () => {
+        const activeVideo = videoRef.current;
+
+        if (!activeVideo || !streamRef.current) {
+          return;
+        }
+
+        if (!isProcessingRef.current && activeVideo.readyState >= 2) {
+          try {
+            const codes = await detector.detect(activeVideo);
+            const rawValue = codes[0]?.rawValue;
+
+            if (rawValue) {
+              await processCode(rawValue, "qr_code");
+              return;
+            }
+          } catch {
+            setMessage("QR-Code konnte noch nicht gelesen werden.");
+          }
+        }
+
+        frameRef.current = window.requestAnimationFrame(scan);
+      };
+
+      frameRef.current = window.requestAnimationFrame(scan);
+    } catch {
+      setCameraState("blocked");
+      setMessage("Kamera konnte nicht geoeffnet werden.");
+      stopCamera();
+    }
+  }, [processCode, stopCamera]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      startCamera();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeout);
+      stopCamera();
+    };
+  }, [startCamera, stopCamera]);
+
+  const handleManualSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    processCode(manualCode, "guest_code");
+  };
+
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="relative mx-auto flex min-h-screen max-w-[430px] flex-col overflow-hidden bg-black">
@@ -28,16 +188,30 @@ export default function MobileScannerPage() {
         </header>
 
         <section className="relative flex flex-1 flex-col items-center justify-between px-8 pb-32 pt-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_35%,rgba(255,191,80,0.75),transparent_22%),radial-gradient(circle_at_70%_20%,rgba(255,181,67,0.55),transparent_18%),radial-gradient(circle_at_60%_65%,rgba(168,80,20,0.7),transparent_25%),linear-gradient(140deg,#1b0d07,#4b250e,#090604)]" />
-
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/35" />
 
           <div className="relative z-10 flex flex-col items-center">
             <div className="flex items-center gap-3 rounded-full bg-white px-8 py-4 text-[#231f20] shadow-lg">
-              <span className="h-3 w-3 rounded-full bg-[#e52535]" />
+              <span
+                className={`h-3 w-3 rounded-full ${
+                  cameraState === "active" ? "bg-[#1d7a3a]" : "bg-[#e52535]"
+                }`}
+              />
               <div className="text-xs font-extrabold uppercase tracking-[0.25em]">
-                <p>STV Stewardship</p>
-                <p>Active</p>
+                <p>STV Check-in</p>
+                <p>
+                  {cameraState === "active"
+                    ? "Kamera aktiv"
+                    : cameraState === "starting"
+                      ? "Startet"
+                      : "Fallback"}
+                </p>
               </div>
             </div>
 
@@ -48,20 +222,55 @@ export default function MobileScannerPage() {
               <div className="absolute bottom-0 right-0 h-16 w-16 rounded-br-2xl border-b-4 border-r-4 border-white" />
 
               <div className="absolute left-2 right-2 top-[64px] h-[2px] bg-[#e52535] shadow-[0_0_16px_rgba(229,37,53,0.8)]" />
+
+              {cameraState === "starting" ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="size-10 animate-spin text-white" />
+                </div>
+              ) : null}
             </div>
           </div>
 
           <div className="relative z-10 w-full">
-            <p className="mx-auto mb-8 max-w-[300px] text-center text-2xl font-bold leading-snug">
-              Richten Sie den QR-Code im Feld aus
+            <p className="mx-auto mb-6 max-w-[300px] text-center text-2xl font-bold leading-snug">
+              {message}
             </p>
+
+            {cameraState === "blocked" || cameraState === "unsupported" ? (
+              <button
+                type="button"
+                onClick={startCamera}
+                className="mb-4 flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-white text-base font-extrabold text-[#e52535]"
+              >
+                Kamera erneut starten
+              </button>
+            ) : null}
+
+            <form onSubmit={handleManualSubmit} className="rounded-2xl bg-black/35 p-3 backdrop-blur-sm">
+              <label className="flex h-14 items-center gap-3 rounded-xl bg-white px-4 text-[#231f20]">
+                <QrCode size={22} className="text-[#e52535]" />
+                <input
+                  value={manualCode}
+                  onChange={(event) => setManualCode(event.target.value)}
+                  placeholder="Gast-Code manuell eingeben"
+                  className="w-full bg-transparent text-base font-semibold outline-none placeholder:text-[#9b8b8d]"
+                />
+              </label>
+              <button
+                type="submit"
+                className="mt-3 flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-[#e52535] text-base font-extrabold shadow-xl shadow-black/30"
+              >
+                <Search size={24} />
+                Code einchecken
+              </button>
+            </form>
 
             <Link
               href="/mobile/search"
-              className="flex h-16 items-center justify-center gap-4 rounded-xl bg-[#e52535] text-xl font-bold shadow-xl shadow-black/30"
+              className="mt-4 flex h-16 items-center justify-center gap-4 rounded-xl bg-white text-xl font-bold text-[#e52535] shadow-xl shadow-black/20"
             >
               <Search size={30} />
-              Manuelle Suche
+              Suche oeffnen
             </Link>
 
             <Link

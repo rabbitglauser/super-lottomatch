@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npx shadcn@latest:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s http://localhost:3000/dashboard)",
+      "Bash(curl:*)"
+    ]
+  }
+}

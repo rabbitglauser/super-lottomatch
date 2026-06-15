@@ -11,8 +11,6 @@ function resolveApiBaseUrl() {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
-
-<<<<<<< HEAD
 export const HAS_EXPLICIT_API_BASE_URL = Boolean(API_BASE_URL);
 
 export const HAS_SUPABASE_MODE = Boolean(
@@ -22,7 +20,7 @@ export const HAS_SUPABASE_MODE = Boolean(
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     ),
 );
-=======
+
 // Private-network host ranges (RFC 1918). Used to detect a LAN device such as a
 // phone on the dev WiFi — public hostnames (e.g. the Vercel domain) never match.
 const PRIVATE_LAN_HOST =
@@ -49,4 +47,3 @@ export function getRuntimeApiBaseUrl(): string {
 
   return apiUrl.origin;
 }
->>>>>>> 566d6c48aa6a9b1fd8a096f9316d611aa984a842

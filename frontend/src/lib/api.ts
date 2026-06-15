@@ -1,6 +1,29 @@
-import { API_BASE_URL } from "@/lib/api-config";
+import {
+  API_BASE_URL,
+  getRuntimeApiBaseUrl,
+  HAS_EXPLICIT_API_BASE_URL,
+  HAS_SUPABASE_MODE,
+} from "@/lib/api-config";
 
 const APP_TIME_ZONE = "Europe/Zurich";
+const GUEST_EXPORT_FILENAME = "superlottomatch-guests-export.csv";
+const GUEST_EXPORT_HEADERS = [
+  "Gast-Code",
+  "Vorname",
+  "Nachname",
+  "Strasse",
+  "Hausnummer",
+  "PLZ",
+  "Ort",
+  "Telefon",
+  "E-Mail",
+  "E-Mail Marketing",
+  "Post Marketing",
+  "Notizen",
+  "Letzte Teilnahme",
+  "Erstellt am",
+];
+let hasLoggedCheckInMode = false;
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   if (!API_BASE_URL) {

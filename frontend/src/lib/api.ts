@@ -3,6 +3,32 @@ import { runtimeApiClient } from "@/lib/api/http-client";
 
 const APP_TIME_ZONE = "Europe/Zurich";
 const guestExportCsvBuilder = new GuestExportCsvBuilder();
+import {
+  API_BASE_URL,
+  getRuntimeApiBaseUrl,
+  HAS_EXPLICIT_API_BASE_URL,
+  HAS_SUPABASE_MODE,
+} from "@/lib/api-config";
+
+const APP_TIME_ZONE = "Europe/Zurich";
+const GUEST_EXPORT_FILENAME = "superlottomatch-guests-export.csv";
+const GUEST_EXPORT_HEADERS = [
+  "Gast-Code",
+  "Vorname",
+  "Nachname",
+  "Strasse",
+  "Hausnummer",
+  "PLZ",
+  "Ort",
+  "Telefon",
+  "E-Mail",
+  "E-Mail Marketing",
+  "Post Marketing",
+  "Notizen",
+  "Letzte Teilnahme",
+  "Erstellt am",
+];
+let hasLoggedCheckInMode = false;
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return runtimeApiClient.json<T>(path, options);
@@ -15,6 +41,25 @@ async function getSupabase() {
 
 function shouldUseHttpApi() {
   return runtimeApiClient.shouldUseHttpApi();
+}
+
+function useBackendApiForCheckIns() {
+  const useBackendApi = !HAS_SUPABASE_MODE && HAS_EXPLICIT_API_BASE_URL;
+
+  if (process.env.NODE_ENV !== "production" && !hasLoggedCheckInMode) {
+    console.info(useBackendApi ? "Using backend API mode" : "Using Supabase mode");
+    hasLoggedCheckInMode = true;
+  }
+
+  return useBackendApi;
+}
+
+function assertCheckInDataSourceConfigured() {
+  if (!HAS_SUPABASE_MODE && !HAS_EXPLICIT_API_BASE_URL) {
+    throw new Error(
+      "Check-in data source is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or set NEXT_PUBLIC_API_BASE_URL/NEXT_PUBLIC_API_URL.",
+    );
+  }
 }
 
 function assertSupabaseOk(error: unknown) {
@@ -1283,7 +1328,9 @@ export function searchMobileGuests(query: string) {
 }
 
 export function fetchCheckIns() {
-  return shouldUseHttpApi()
+  assertCheckInDataSourceConfigured();
+
+  return useBackendApiForCheckIns()
     ? apiFetch<CheckInData>("/check-ins")
     : fetchCheckInsFromSupabase();
 }
@@ -1292,7 +1339,9 @@ export function checkInByCode(
   code: string,
   method: "qr_code" | "guest_code" | "manual_form" = "qr_code",
 ) {
-  return shouldUseHttpApi()
+  assertCheckInDataSourceConfigured();
+
+  return useBackendApiForCheckIns()
     ? apiFetch<MobileCheckInResult>("/check-ins/by-code", {
         method: "POST",
         body: JSON.stringify({ code, method }),
@@ -1301,7 +1350,9 @@ export function checkInByCode(
 }
 
 export function createCheckIn(guestId: string) {
-  return shouldUseHttpApi()
+  assertCheckInDataSourceConfigured();
+
+  return useBackendApiForCheckIns()
     ? apiFetch<{ id: string; checkedInAt: string }>(`/check-ins/${guestId}`, {
         method: "POST",
       })

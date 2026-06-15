@@ -43,9 +43,17 @@ npm run dev
 Optional environment variables:
 
 ```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_MAPBOX_TOKEN=
 ```
+
+Check-in mode selection:
+
+- Uses Supabase when `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are present.
+- Uses backend API only when Supabase env vars are missing and `NEXT_PUBLIC_API_BASE_URL` or `NEXT_PUBLIC_API_URL` is explicitly set.
 
 ## Quality checks
 

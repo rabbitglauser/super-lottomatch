@@ -1,47 +1,25 @@
-const LOCAL_API_BASE_URL = "http://localhost:8000";
-const PRODUCTION_API_BASE_URL = "https://super-lottomatch.onrender.com";
-
 function cleanUrl(value: string | undefined) {
   const cleanedValue = value?.trim().replace(/\/+$/, "");
   return cleanedValue || undefined;
 }
 
-function isSupabaseProjectUrl(value: string) {
-  try {
-    return new URL(value).hostname.endsWith(".supabase.co");
-  } catch {
-    return false;
-  }
-}
-
-function hasSupabaseConfig() {
-  return Boolean(
-    cleanUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-      cleanUrl(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+function resolveApiBaseUrl() {
+  return (
+    cleanUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ??
+    cleanUrl(process.env.NEXT_PUBLIC_API_URL)
   );
 }
 
-function resolveApiBaseUrl() {
-  const configuredUrl =
-    cleanUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ??
-    cleanUrl(process.env.NEXT_PUBLIC_API_URL);
-
-  if (configuredUrl && !isSupabaseProjectUrl(configuredUrl)) {
-    return configuredUrl;
-  }
-
-  if (!configuredUrl && hasSupabaseConfig()) {
-    return undefined;
-  }
-
-  if (configuredUrl && process.env.NODE_ENV === "production") {
-    return PRODUCTION_API_BASE_URL;
-  }
-
-  return LOCAL_API_BASE_URL;
-}
-
 export const API_BASE_URL = resolveApiBaseUrl();
+export const HAS_EXPLICIT_API_BASE_URL = Boolean(API_BASE_URL);
+
+export const HAS_SUPABASE_MODE = Boolean(
+  cleanUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    cleanUrl(
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    ),
+);
 
 // Private-network host ranges (RFC 1918). Used to detect a LAN device such as a
 // phone on the dev WiFi — public hostnames (e.g. the Vercel domain) never match.

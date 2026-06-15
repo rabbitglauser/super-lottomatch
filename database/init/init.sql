@@ -214,6 +214,8 @@ create table campaign_recipients (
 );
 
 -- pgcrypto is required for bcrypt password verification inside the RPC.
+-- Supabase installs extensions into the extensions schema, so the RPC calls
+-- extensions.crypt explicitly instead of relying on search_path.
 create extension if not exists pgcrypto;
 
 -- authenticate_user is called by the frontend Supabase client.
@@ -238,7 +240,7 @@ begin
   end if;
 
   -- crypt() from pgcrypto verifies bcrypt hashes ($2a$ prefix required for pgcrypto).
-  if crypt(p_password, v_user.password_hash) = v_user.password_hash then
+  if extensions.crypt(p_password, v_user.password_hash::text) = v_user.password_hash then
     return query
       select
         v_user.id,

@@ -245,7 +245,7 @@ begin
       select
         v_user.id,
         (v_user.first_name || ' ' || v_user.last_name)::text,
-        v_user.email;
+        v_user.email::text;
   end if;
 end;
 $$;

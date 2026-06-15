@@ -1,0 +1,55 @@
+from typing import Literal
+
+from pydantic import BaseModel
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+
+
+class GuestRegistrationRequest(BaseModel):
+    firstName: str
+    lastName: str
+    street: str
+    houseNumber: str
+    postalCode: str
+    city: str
+    phone: str | None = None
+    email: str | None = None
+    allowEmailMarketing: bool = False
+    allowPostMarketing: bool = True
+    notes: str | None = None
+
+
+class GuestRegistrationResponse(BaseModel):
+    id: str
+    guestCode: str
+    name: str
+
+
+class GuestSearchResult(BaseModel):
+    id: str
+    name: str
+    code: str
+    address: str
+    status: Literal["checked-in", "expected"]
+    checkedInAt: str | None
+
+
+class CheckInByCodeRequest(BaseModel):
+    code: str
+    method: Literal["qr_code", "guest_code", "manual_form"] = "qr_code"
+
+
+class CheckInByCodeResponse(BaseModel):
+    status: Literal["checked-in", "already-checked-in"]
+    id: str
+    checkedInAt: str | None
+    guest: GuestSearchResult

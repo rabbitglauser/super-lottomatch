@@ -25,6 +25,8 @@ live-frontend: https://superlottomatch.vercel.app/
 
 live-Backend: https://super-lottomatch.onrender.com/
 
+https://superlottomatch.vercel.app/dev-qr.html
+
 ## Team
 
 | Role | Name |

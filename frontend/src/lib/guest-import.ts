@@ -67,22 +67,30 @@ function emptyMapping(): Mapping {
   }, {} as Mapping);
 }
 
+class GuestMappingDetector {
+  detect(headers: string[]): Mapping {
+    const mapping = emptyMapping();
+    const normalizedHeaders = headers.map(normalizeHeader);
+
+    SYSTEM_FIELDS.forEach((field) => {
+      const synonyms = HEADER_SYNONYMS[field].map(normalizeHeader);
+      const matchIndex = normalizedHeaders.findIndex((header) =>
+        synonyms.includes(header),
+      );
+
+      if (matchIndex !== -1) {
+        mapping[field] = matchIndex;
+      }
+    });
+
+    return mapping;
+  }
+}
+
+const mappingDetector = new GuestMappingDetector();
+
 export function autoDetectMapping(headers: string[]): Mapping {
-  const mapping = emptyMapping();
-  const normalizedHeaders = headers.map(normalizeHeader);
-
-  SYSTEM_FIELDS.forEach((field) => {
-    const synonyms = HEADER_SYNONYMS[field].map(normalizeHeader);
-    const matchIndex = normalizedHeaders.findIndex((header) =>
-      synonyms.includes(header),
-    );
-
-    if (matchIndex !== -1) {
-      mapping[field] = matchIndex;
-    }
-  });
-
-  return mapping;
+  return mappingDetector.detect(headers);
 }
 
 function getFileExtension(name: string): string {
@@ -90,69 +98,77 @@ function getFileExtension(name: string): string {
   return dotIndex === -1 ? "" : name.slice(dotIndex + 1).toLowerCase();
 }
 
-async function parseCsv(file: File): Promise<ParsedFile> {
-  return new Promise((resolve, reject) => {
-    Papa.parse<string[]>(file, {
-      skipEmptyLines: true,
-      complete: (result) => {
-        const data = result.data as string[][];
+class GuestFileParser {
+  async parse(file: File): Promise<ParsedFile> {
+    const extension = getFileExtension(file.name);
 
-        if (data.length === 0) {
-          reject(new Error("CSV-Datei ist leer"));
-          return;
-        }
+    if (extension === "csv") {
+      return this.parseCsv(file);
+    }
 
-        const [headerRow, ...rest] = data;
-        resolve({
-          headers: headerRow.map((cell) => String(cell ?? "").trim()),
-          rows: rest.map((row) => row.map((cell) => String(cell ?? "").trim())),
-        });
-      },
-      error: (error) => reject(error),
+    if (extension === "xlsx" || extension === "xls") {
+      return this.parseXlsx(file);
+    }
+
+    throw new Error(`Dateityp wird nicht unterstützt: .${extension}`);
+  }
+
+  private async parseCsv(file: File): Promise<ParsedFile> {
+    return new Promise((resolve, reject) => {
+      Papa.parse<string[]>(file, {
+        skipEmptyLines: true,
+        complete: (result) => {
+          const data = result.data as string[][];
+
+          if (data.length === 0) {
+            reject(new Error("CSV-Datei ist leer"));
+            return;
+          }
+
+          const [headerRow, ...rest] = data;
+          resolve({
+            headers: headerRow.map((cell) => String(cell ?? "").trim()),
+            rows: rest.map((row) => row.map((cell) => String(cell ?? "").trim())),
+          });
+        },
+        error: (error) => reject(error),
+      });
     });
-  });
-}
-
-async function parseXlsx(file: File): Promise<ParsedFile> {
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array" });
-  const firstSheetName = workbook.SheetNames[0];
-
-  if (!firstSheetName) {
-    throw new Error("Excel-Datei enthält keine Tabellen");
   }
 
-  const sheet = workbook.Sheets[firstSheetName];
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
-    header: 1,
-    blankrows: false,
-    defval: "",
-    raw: false,
-  });
+  private async parseXlsx(file: File): Promise<ParsedFile> {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
 
-  if (rows.length === 0) {
-    throw new Error("Excel-Datei ist leer");
+    if (!firstSheetName) {
+      throw new Error("Excel-Datei enthält keine Tabellen");
+    }
+
+    const sheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
+      header: 1,
+      blankrows: false,
+      defval: "",
+      raw: false,
+    });
+
+    if (rows.length === 0) {
+      throw new Error("Excel-Datei ist leer");
+    }
+
+    const [headerRow, ...rest] = rows;
+    return {
+      headers: headerRow.map((cell) => String(cell ?? "").trim()),
+      rows: rest.map((row) => row.map((cell) => String(cell ?? "").trim())),
+    };
   }
-
-  const [headerRow, ...rest] = rows;
-  return {
-    headers: headerRow.map((cell) => String(cell ?? "").trim()),
-    rows: rest.map((row) => row.map((cell) => String(cell ?? "").trim())),
-  };
 }
+
+const guestFileParser = new GuestFileParser();
 
 export async function parseFile(file: File): Promise<ParsedFile> {
-  const extension = getFileExtension(file.name);
-
-  if (extension === "csv") {
-    return parseCsv(file);
-  }
-
-  if (extension === "xlsx" || extension === "xls") {
-    return parseXlsx(file);
-  }
-
-  throw new Error(`Dateityp wird nicht unterstützt: .${extension}`);
+  return guestFileParser.parse(file);
 }
 
 function cellValue(row: string[], columnIndex: number | null): string {
@@ -200,32 +216,14 @@ function describeError(error: unknown): string {
   return "Unbekannter Fehler";
 }
 
-async function upsertAddress(address: {
+interface GuestImportAddress {
   street: string;
   house_number: string;
   postal_code: string;
   city: string;
-}): Promise<number> {
-  const { data, error } = await supabase
-    .from("addresses")
-    .upsert(address, {
-      onConflict: "street,house_number,postal_code,city",
-    })
-    .select("id")
-    .single<{ id: number }>();
-
-  if (error) {
-    throw new Error(`Adresse: ${describeError(error)}`);
-  }
-
-  if (!data) {
-    throw new Error("Adresse konnte nicht angelegt werden");
-  }
-
-  return data.id;
 }
 
-async function insertGuest(guest: {
+interface GuestImportPayload {
   guest_code: string;
   first_name: string;
   last_name: string;
@@ -233,76 +231,115 @@ async function insertGuest(guest: {
   phone: string;
   email: string;
   notes: string | null;
-}): Promise<void> {
-  const { error } = await supabase.from("guests").insert({
-    guest_code: guest.guest_code,
-    first_name: guest.first_name,
-    last_name: guest.last_name,
-    address_id: guest.address_id,
-    phone: guest.phone,
-    email: guest.email,
-    notes: guest.notes,
-    allow_email_marketing: false,
-    allow_post_marketing: true,
-  });
+}
 
-  if (error) {
-    throw new Error(`Gast: ${describeError(error)}`);
+class SupabaseGuestImportRepository {
+  async upsertAddress(address: GuestImportAddress): Promise<number> {
+    const { data, error } = await supabase
+      .from("addresses")
+      .upsert(address, {
+        onConflict: "street,house_number,postal_code,city",
+      })
+      .select("id")
+      .single<{ id: number }>();
+
+    if (error) {
+      throw new Error(`Adresse: ${describeError(error)}`);
+    }
+
+    if (!data) {
+      throw new Error("Adresse konnte nicht angelegt werden");
+    }
+
+    return data.id;
+  }
+
+  async insertGuest(guest: GuestImportPayload): Promise<void> {
+    const { error } = await supabase.from("guests").insert({
+      guest_code: guest.guest_code,
+      first_name: guest.first_name,
+      last_name: guest.last_name,
+      address_id: guest.address_id,
+      phone: guest.phone,
+      email: guest.email,
+      notes: guest.notes,
+      allow_email_marketing: false,
+      allow_post_marketing: true,
+    });
+
+    if (error) {
+      throw new Error(`Gast: ${describeError(error)}`);
+    }
   }
 }
+
+class GuestImportService {
+  constructor(private readonly repository: SupabaseGuestImportRepository) {}
+
+  async importRows(rows: string[][], mapping: Mapping): Promise<ImportResult> {
+    const result: ImportResult = { inserted: 0, failed: [] };
+
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index];
+      const rowNumber = index + 2;
+
+      try {
+        await this.importRow(row, mapping);
+        result.inserted += 1;
+      } catch (error) {
+        console.error(`Guest import failed for row ${rowNumber}:`, error);
+        result.failed.push({ row: rowNumber, reason: describeError(error) });
+      }
+    }
+
+    return result;
+  }
+
+  private async importRow(row: string[], mapping: Mapping): Promise<void> {
+    const firstName = cellValue(row, mapping["Vorname"]);
+    const lastName = cellValue(row, mapping["Nachname"]);
+    const street = cellValue(row, mapping["Strasse"]);
+    const houseNumber = cellValue(row, mapping["Hausnummer"]);
+    const postalCode = cellValue(row, mapping["PLZ"]);
+    const city = cellValue(row, mapping["Ort"]);
+
+    const missing = REQUIRED_FIELDS.filter((field) => {
+      const columnIndex = mapping[field];
+      return columnIndex === null || cellValue(row, columnIndex) === "";
+    });
+
+    if (missing.length > 0) {
+      throw new Error(`Pflichtfeld leer: ${missing.join(", ")}`);
+    }
+
+    const addressId = await this.repository.upsertAddress({
+      street,
+      house_number: houseNumber,
+      postal_code: postalCode,
+      city,
+    });
+
+    await this.repository.insertGuest({
+      guest_code: crypto.randomUUID(),
+      first_name: firstName,
+      last_name: lastName,
+      address_id: addressId,
+      phone: cellValue(row, mapping["Telefon"]),
+      email: cellValue(row, mapping["E-Mail"]),
+      notes: optionalCell(row, mapping["Notizen"]),
+    });
+  }
+}
+
+const guestImportService = new GuestImportService(
+  new SupabaseGuestImportRepository(),
+);
 
 export async function importGuestRows(
   rows: string[][],
   mapping: Mapping,
 ): Promise<ImportResult> {
-  const result: ImportResult = { inserted: 0, failed: [] };
-
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index];
-    const rowNumber = index + 2;
-
-    try {
-      const firstName = cellValue(row, mapping["Vorname"]);
-      const lastName = cellValue(row, mapping["Nachname"]);
-      const street = cellValue(row, mapping["Strasse"]);
-      const houseNumber = cellValue(row, mapping["Hausnummer"]);
-      const postalCode = cellValue(row, mapping["PLZ"]);
-      const city = cellValue(row, mapping["Ort"]);
-
-      const missing = REQUIRED_FIELDS.filter((field) => {
-        const columnIndex = mapping[field];
-        return columnIndex === null || cellValue(row, columnIndex) === "";
-      });
-
-      if (missing.length > 0) {
-        throw new Error(`Pflichtfeld leer: ${missing.join(", ")}`);
-      }
-
-      const addressId = await upsertAddress({
-        street,
-        house_number: houseNumber,
-        postal_code: postalCode,
-        city,
-      });
-
-      await insertGuest({
-        guest_code: crypto.randomUUID(),
-        first_name: firstName,
-        last_name: lastName,
-        address_id: addressId,
-        phone: cellValue(row, mapping["Telefon"]),
-        email: cellValue(row, mapping["E-Mail"]),
-        notes: optionalCell(row, mapping["Notizen"]),
-      });
-
-      result.inserted += 1;
-    } catch (error) {
-      console.error(`Guest import failed for row ${rowNumber}:`, error);
-      result.failed.push({ row: rowNumber, reason: describeError(error) });
-    }
-  }
-
-  return result;
+  return guestImportService.importRows(rows, mapping);
 }
 
 export function isMappingComplete(mapping: Mapping): boolean {

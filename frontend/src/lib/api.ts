@@ -1,33 +1,9 @@
 import { GuestExportCsvBuilder, GUEST_EXPORT_FILENAME } from "@/lib/api/guest-export";
 import { runtimeApiClient } from "@/lib/api/http-client";
+import { HAS_EXPLICIT_API_BASE_URL, HAS_SUPABASE_MODE } from "@/lib/api-config";
 
 const APP_TIME_ZONE = "Europe/Zurich";
 const guestExportCsvBuilder = new GuestExportCsvBuilder();
-import {
-  API_BASE_URL,
-  getRuntimeApiBaseUrl,
-  HAS_EXPLICIT_API_BASE_URL,
-  HAS_SUPABASE_MODE,
-} from "@/lib/api-config";
-
-const APP_TIME_ZONE = "Europe/Zurich";
-const GUEST_EXPORT_FILENAME = "superlottomatch-guests-export.csv";
-const GUEST_EXPORT_HEADERS = [
-  "Gast-Code",
-  "Vorname",
-  "Nachname",
-  "Strasse",
-  "Hausnummer",
-  "PLZ",
-  "Ort",
-  "Telefon",
-  "E-Mail",
-  "E-Mail Marketing",
-  "Post Marketing",
-  "Notizen",
-  "Letzte Teilnahme",
-  "Erstellt am",
-];
 let hasLoggedCheckInMode = false;
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -43,7 +19,7 @@ function shouldUseHttpApi() {
   return runtimeApiClient.shouldUseHttpApi();
 }
 
-function useBackendApiForCheckIns() {
+function shouldUseBackendApiForCheckIns() {
   const useBackendApi = !HAS_SUPABASE_MODE && HAS_EXPLICIT_API_BASE_URL;
 
   if (process.env.NODE_ENV !== "production" && !hasLoggedCheckInMode) {
@@ -1330,7 +1306,7 @@ export function searchMobileGuests(query: string) {
 export function fetchCheckIns() {
   assertCheckInDataSourceConfigured();
 
-  return useBackendApiForCheckIns()
+  return shouldUseBackendApiForCheckIns()
     ? apiFetch<CheckInData>("/check-ins")
     : fetchCheckInsFromSupabase();
 }
@@ -1341,7 +1317,7 @@ export function checkInByCode(
 ) {
   assertCheckInDataSourceConfigured();
 
-  return useBackendApiForCheckIns()
+  return shouldUseBackendApiForCheckIns()
     ? apiFetch<MobileCheckInResult>("/check-ins/by-code", {
         method: "POST",
         body: JSON.stringify({ code, method }),
@@ -1352,7 +1328,7 @@ export function checkInByCode(
 export function createCheckIn(guestId: string) {
   assertCheckInDataSourceConfigured();
 
-  return useBackendApiForCheckIns()
+  return shouldUseBackendApiForCheckIns()
     ? apiFetch<{ id: string; checkedInAt: string }>(`/check-ins/${guestId}`, {
         method: "POST",
       })

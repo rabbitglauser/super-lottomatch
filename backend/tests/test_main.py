@@ -1,3 +1,6 @@
+import csv
+import io
+from datetime import date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +15,13 @@ class FakeExecuteResult:
 
     def first(self):
         return self.row
+
+    def all(self):
+        if self.row is None:
+            return []
+        if isinstance(self.row, list):
+            return self.row
+        return [self.row]
 
 
 class FakeDb:
@@ -123,3 +133,74 @@ def test_normalize_guest_code_accepts_raw_codes_and_urls():
         normalize_guest_code("https://example.ch/mobile/register/confirmation?code=g-000456")
         == "G-000456"
     )
+
+
+@pytest.mark.asyncio
+async def test_guest_export_returns_postal_csv(client):
+    override_db(
+        [
+            SimpleNamespace(
+                guest_code="G-000123",
+                first_name="Nina",
+                last_name="Odermatt",
+                street="Dorfstrasse",
+                house_number="67",
+                postal_code="6373",
+                city="Ennetbürgen",
+                phone="0791234567",
+                email="nina@example.ch",
+                allow_email_marketing=True,
+                allow_post_marketing=False,
+                notes='Sitzt "vorne"; braucht Platz',
+                last_participation=datetime(2026, 1, 17, 18, 30),
+                created_at=date(2025, 12, 1),
+            )
+        ]
+    )
+
+    response = await client.get("/guests/export")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/csv; charset=utf-8"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="superlottomatch-guests-export.csv"'
+    )
+    assert response.content.startswith(b"\xef\xbb\xbf")
+
+    csv_text = response.content.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(csv_text), delimiter=";"))
+
+    assert rows == [
+        [
+            "Gast-Code",
+            "Vorname",
+            "Nachname",
+            "Strasse",
+            "Hausnummer",
+            "PLZ",
+            "Ort",
+            "Telefon",
+            "E-Mail",
+            "E-Mail Marketing",
+            "Post Marketing",
+            "Notizen",
+            "Letzte Teilnahme",
+            "Erstellt am",
+        ],
+        [
+            "G-000123",
+            "Nina",
+            "Odermatt",
+            "Dorfstrasse",
+            "67",
+            "6373",
+            "Ennetbürgen",
+            "0791234567",
+            "nina@example.ch",
+            "Ja",
+            "Nein",
+            'Sitzt "vorne"; braucht Platz',
+            "17.01.2026",
+            "01.12.2025",
+        ],
+    ]

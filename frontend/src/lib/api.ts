@@ -1,14 +1,13 @@
-import { API_BASE_URL, HAS_EXPLICIT_API_BASE_URL, HAS_SUPABASE_MODE } from "@/lib/api-config";
+import { API_BASE_URL } from "@/lib/api-config";
 
 const APP_TIME_ZONE = "Europe/Zurich";
-let hasLoggedCheckInMode = false;
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   if (!API_BASE_URL) {
     throw new Error("API base URL is not configured");
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${getRuntimeApiBaseUrl()}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -37,10 +36,20 @@ function shouldUseHttpApi() {
     return true;
   }
 
-  const isPublicHost = !["localhost", "127.0.0.1"].includes(window.location.hostname);
   const isLocalApi = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(API_BASE_URL);
 
-  return !(isPublicHost && isLocalApi);
+  // An explicit remote API (e.g. the Render backend in production) is always usable.
+  if (!isLocalApi) {
+    return true;
+  }
+
+  // A localhost API is only reachable when viewing locally, or from a LAN device
+  // where getRuntimeApiBaseUrl rewrites the host to the dev machine's IP. For any
+  // other public host (e.g. a preview deploy) fall back to the Supabase path.
+  const host = window.location.hostname;
+  const isLocalView = ["localhost", "127.0.0.1"].includes(host);
+  const isLanView = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+  return isLocalView || isLanView;
 }
 
 function useBackendApiForCheckIns() {
@@ -102,6 +111,14 @@ function formatDate(value: string | null | undefined) {
     year: "numeric",
     timeZone: APP_TIME_ZONE,
   }).format(date);
+}
+
+function formatExportDate(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  return formatDate(value);
 }
 
 function formatTime(value: string | null | undefined) {
@@ -435,9 +452,11 @@ interface GuestRow {
   guest_code: string;
   first_name: string;
   last_name: string;
+  phone: string | null;
   email: string | null;
   allow_email_marketing: boolean;
   allow_post_marketing: boolean;
+  notes: string | null;
   created_at: string;
   addresses?: AddressRow | AddressRow[] | null;
   checkins?: { checked_in_at: string }[] | null;
@@ -504,7 +523,7 @@ async function getGuestRows() {
   const { data, error } = await supabase
     .from("guests")
     .select(
-      "id, guest_code, first_name, last_name, email, allow_email_marketing, allow_post_marketing, created_at, addresses(city, street, house_number, postal_code), checkins(checked_in_at)",
+      "id, guest_code, first_name, last_name, phone, email, allow_email_marketing, allow_post_marketing, notes, created_at, addresses(city, street, house_number, postal_code), checkins(checked_in_at)",
     )
     .is("deleted_at", null)
     .order("last_name", { ascending: true })
@@ -620,6 +639,85 @@ function mapGuestRecord(row: GuestRow): GuestRecord {
     marketingActive: row.allow_email_marketing || row.allow_post_marketing,
     initials: initials(row.first_name, row.last_name),
     avatarTone: avatarTone(row.id),
+  };
+}
+
+function exportCell(value: boolean | number | string | null | undefined) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value);
+}
+
+function exportBool(value: boolean) {
+  return value ? "Ja" : "Nein";
+}
+
+function escapeCsvCell(value: string) {
+  if (/[;"\n\r]/.test(value)) {
+    return `"${value.replaceAll('"', '""')}"`;
+  }
+
+  return value;
+}
+
+function buildCsv(rows: string[][]) {
+  return `${rows
+    .map((row) => row.map((cell) => escapeCsvCell(cell)).join(";"))
+    .join("\n")}\n`;
+}
+
+function buildGuestExportCsv(rows: GuestRow[]) {
+  const csvRows = rows.map((row) => {
+    const address = relationOne(row.addresses);
+    const lastParticipation = latestBy(
+      row.checkins ?? [],
+      (checkin) => checkin.checked_in_at,
+    );
+
+    return [
+      exportCell(row.guest_code),
+      exportCell(row.first_name),
+      exportCell(row.last_name),
+      exportCell(address?.street),
+      exportCell(address?.house_number),
+      exportCell(address?.postal_code),
+      exportCell(address?.city),
+      exportCell(row.phone),
+      exportCell(row.email),
+      exportBool(row.allow_email_marketing),
+      exportBool(row.allow_post_marketing),
+      exportCell(row.notes),
+      formatExportDate(lastParticipation),
+      formatExportDate(row.created_at),
+    ];
+  });
+
+  return `\uFEFF${buildCsv([[...GUEST_EXPORT_HEADERS], ...csvRows])}`;
+}
+
+async function fetchGuestExportFromHttp() {
+  const response = await fetch(`${getRuntimeApiBaseUrl()}/guests/export`);
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return {
+    blob: await response.blob(),
+    filename: GUEST_EXPORT_FILENAME,
+  };
+}
+
+async function fetchGuestExportFromSupabase() {
+  const rows = await getGuestRows();
+
+  return {
+    blob: new Blob([buildGuestExportCsv(rows)], {
+      type: "text/csv;charset=utf-8",
+    }),
+    filename: GUEST_EXPORT_FILENAME,
   };
 }
 
@@ -1267,6 +1365,12 @@ export function fetchDashboardData() {
 
 export function fetchGuests() {
   return shouldUseHttpApi() ? apiFetch<GuestRecord[]>("/guests") : fetchGuestsFromSupabase();
+}
+
+export function fetchGuestExport() {
+  return shouldUseHttpApi()
+    ? fetchGuestExportFromHttp()
+    : fetchGuestExportFromSupabase();
 }
 
 export function toggleGuestMarketing(guestId: string) {

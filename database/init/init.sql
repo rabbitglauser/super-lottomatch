@@ -237,7 +237,7 @@ begin
     return;
   end if;
 
-  -- crypt() from pgcrypto verifies bcrypt hashes (both $2a$ and $2b$ prefixes).
+  -- crypt() from pgcrypto verifies bcrypt hashes ($2a$ prefix required for pgcrypto).
   if crypt(p_password, v_user.password_hash) = v_user.password_hash then
     return query
       select
@@ -247,3 +247,7 @@ begin
   end if;
 end;
 $$;
+
+-- Grant execute to the Supabase anon and authenticated roles so the
+-- frontend Supabase client can call this RPC via the public API.
+grant execute on function authenticate_user(text, text) to anon, authenticated;

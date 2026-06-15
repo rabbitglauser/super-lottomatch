@@ -33,10 +33,10 @@ insert into users (
   is_active,
   created_at
 ) overriding system value values
-  (1, 'Nina', 'Odermatt', 'nina.odermatt@stv-ennetbuergen.ch', '$2b$12$2Tw/9ZR1c9lBphh.E4a2WuLHlJG4PvUIYvqUwzctUfP9k.oQ8efO.', 'admin', true, '2026-01-10 09:00:00+01'),
-  (2, 'Marco', 'Bucher', 'marco.bucher@stv-ennetbuergen.ch', '$2b$12$cGor31O3ep.q5Klmm9JreuFN8HUvL0of8fOb8BB..0X7BduQYhG4C', 'member', true, '2026-01-12 18:30:00+01'),
-  (3, 'Sabrina', 'Hess', 'sabrina.hess@stv-ennetbuergen.ch', '$2b$12$90I21HpRk.zOe4EQgsI5E.wfFCmeZSe4HWbcNf/8bD/DQ39Q3WYlO', 'member', true, '2026-01-15 20:10:00+01'),
-  (4, 'Lukas', 'Wyrsch', 'lukas.wyrsch@stv-ennetbuergen.ch', '$2b$12$SaXb.ts0Oh90sHd1vp9fm.psCWsRUhaBR.cWnEGxQSYZkSNghanKm', 'member', false, '2025-11-20 17:45:00+01');
+  (1, 'Nina', 'Odermatt', 'nina.odermatt@stv-ennetbuergen.ch', '$2a$12$QpZ4bXEyHh6nf1kg2paEEuQYNloOub..REq0G/14bM5VIFWzZ9Q82', 'admin', true, '2026-01-10 09:00:00+01'),
+  (2, 'Marco', 'Bucher', 'marco.bucher@stv-ennetbuergen.ch', '$2a$12$quyEM2wg0Dsho./NMpuj0.MJsrutqROUdskIPEh68gTLRUYO/pUL.', 'member', true, '2026-01-12 18:30:00+01'),
+  (3, 'Sabrina', 'Hess', 'sabrina.hess@stv-ennetbuergen.ch', '$2a$12$B0ozvLeP2HsrsoBT6lVW9OuVNsZyZQm1/ZKpziV3zO0XJRUYCi.du', 'member', true, '2026-01-15 20:10:00+01'),
+  (4, 'Lukas', 'Wyrsch', 'lukas.wyrsch@stv-ennetbuergen.ch', '$2a$12$YIaS/90tTQA7vhN9btAF4.fwC1E.hPavzsCxR7w7rLjqsDsBFTsDu', 'member', false, '2025-11-20 17:45:00+01');
 
 -- =========================
 -- ADDRESSES

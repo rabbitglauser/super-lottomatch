@@ -39,6 +39,14 @@ function resultParams(result: Awaited<ReturnType<typeof checkInByCode>>) {
   });
 }
 
+function classifyCheckInError(error: unknown): "not-found" | "network" {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (message.includes("not found") || message.includes("404")) {
+    return "not-found";
+  }
+  return "network";
+}
+
 export default function MobileScannerPage() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -81,9 +89,12 @@ export default function MobileScannerPage() {
             ? `/mobile/scanner/warning?${params}`
             : `/mobile/scanner/success?${params}`,
         );
-      } catch {
+      } catch (error) {
         stopCamera();
-        router.push(`/mobile/scanner/error?code=${encodeURIComponent(code)}`);
+        const reason = classifyCheckInError(error);
+        router.push(
+          `/mobile/scanner/error?code=${encodeURIComponent(code)}&reason=${reason}`,
+        );
       }
     },
     [router, stopCamera],

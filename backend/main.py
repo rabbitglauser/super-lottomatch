@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 import secrets
 from datetime import date, datetime
@@ -8,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -21,6 +24,23 @@ DEFAULT_CORS_ORIGINS = [
     "http://localhost:3001",
     "https://superlottomatch.vercel.app",
 ]
+GUEST_EXPORT_FILENAME = "superlottomatch-guests-export.csv"
+GUEST_EXPORT_HEADERS = [
+    "Gast-Code",
+    "Vorname",
+    "Nachname",
+    "Strasse",
+    "Hausnummer",
+    "PLZ",
+    "Ort",
+    "Telefon",
+    "E-Mail",
+    "E-Mail Marketing",
+    "Post Marketing",
+    "Notizen",
+    "Letzte Teilnahme",
+    "Erstellt am",
+]
 
 
 def get_cors_origins() -> list[str]:
@@ -33,9 +53,17 @@ def get_cors_origins() -> list[str]:
     return [*DEFAULT_CORS_ORIGINS, *extra_origins]
 
 
+# Allow private-network origins (any port) so LAN devices such as a phone on the
+# same WiFi can reach the dev backend during local testing.
+LAN_ORIGIN_REGEX = (
+    r"http://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+"
+    r"|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?"
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_origin_regex=LAN_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -160,6 +188,50 @@ def month_label(value: date) -> str:
         "DEZ",
     ]
     return labels[value.month - 1]
+
+
+def format_export_date(value: date | datetime | None) -> str:
+    if value is None:
+        return ""
+    return value.strftime("%d.%m.%Y")
+
+
+def format_export_bool(value: bool | None) -> str:
+    return "Ja" if value else "Nein"
+
+
+def csv_value(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value)
+
+
+def build_guest_export_csv(rows: list[Any]) -> str:
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", lineterminator="\n")
+    writer.writerow(GUEST_EXPORT_HEADERS)
+
+    for row in rows:
+        writer.writerow(
+            [
+                csv_value(row.guest_code),
+                csv_value(row.first_name),
+                csv_value(row.last_name),
+                csv_value(row.street),
+                csv_value(row.house_number),
+                csv_value(row.postal_code),
+                csv_value(row.city),
+                csv_value(row.phone),
+                csv_value(row.email),
+                format_export_bool(row.allow_email_marketing),
+                format_export_bool(row.allow_post_marketing),
+                csv_value(row.notes),
+                format_export_date(row.last_participation),
+                format_export_date(row.created_at),
+            ]
+        )
+
+    return f"\ufeff{output.getvalue()}"
 
 
 def clean_optional(value: str | None) -> str | None:
@@ -476,6 +548,45 @@ def get_guests(db: Session = Depends(get_db)):
     ]
 
 
+@app.get("/guests/export")
+def export_guests(db: Session = Depends(get_db)):
+    rows = db.execute(
+        text(
+            """
+            select
+              g.guest_code,
+              g.first_name,
+              g.last_name,
+              a.street,
+              a.house_number,
+              a.postal_code,
+              a.city,
+              g.phone,
+              g.email,
+              g.allow_email_marketing,
+              g.allow_post_marketing,
+              g.notes,
+              max(c.checked_in_at) as last_participation,
+              g.created_at
+            from guests g
+            join addresses a on a.id = g.address_id
+            left join checkins c on c.guest_id = g.id
+            where g.deleted_at is null
+            group by g.id, a.street, a.house_number, a.postal_code, a.city
+            order by g.last_name, g.first_name
+            """
+        )
+    ).all()
+
+    return Response(
+        content=build_guest_export_csv(rows),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (f'attachment; filename="{GUEST_EXPORT_FILENAME}"')
+        },
+    )
+
+
 @app.post("/guests", response_model=GuestRegistrationResponse)
 def create_guest(
     payload: GuestRegistrationRequest,
@@ -563,7 +674,9 @@ def create_guest(
 
 
 @app.get("/guests/search", response_model=list[GuestSearchResult])
-def search_guests(q: str = "", db: Session = Depends(get_db)) -> list[GuestSearchResult]:
+def search_guests(
+    q: str = "", db: Session = Depends(get_db)
+) -> list[GuestSearchResult]:
     query = q.strip()
     if len(query) < 2:
         return []

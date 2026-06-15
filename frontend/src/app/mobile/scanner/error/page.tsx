@@ -28,6 +28,11 @@ export default async function ScannerErrorPage({
 }) {
   const params = await searchParams;
   const code = readParam(params, "code", "Unbekannter Code");
+  const reason = readParam(params, "reason", "not-found");
+  const reasonLabel =
+    reason === "network"
+      ? "Server nicht erreichbar"
+      : "Gast ist nicht registriert";
 
   return (
     <main className="min-h-screen bg-[#fbf7f8] text-[#231f20]">
@@ -72,7 +77,7 @@ export default async function ScannerErrorPage({
               <InfoRow
                 icon={<Clock3 size={24} />}
                 label="Moeglicher Grund"
-                value="Gast ist nicht registriert"
+                value={reasonLabel}
               />
             </div>
           </div>

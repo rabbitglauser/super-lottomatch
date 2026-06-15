@@ -36,15 +36,20 @@ import PageReveal from "@/components/atoms/PageReveal";
 import {
   createCheckIn,
   fetchCheckIns,
-  type CheckInGuest,
-  type CheckInSummary,
   type GuestStatus,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-type GuestFilter = "all" | GuestStatus;
-type GuestRecord = CheckInGuest;
-type OverviewSummary = CheckInSummary;
+import {
+  FILTER_OPTIONS,
+  formatCurrentTime,
+  formatRate,
+  getStatusCounts,
+  parseTimeToMinutes,
+  roundToSingleDecimal,
+  type GuestFilter,
+  type GuestRecord,
+  type OverviewSummary,
+} from "./view-model";
 
 interface KpiCardProps {
   label: string;
@@ -53,13 +58,6 @@ interface KpiCardProps {
   icon: ComponentType<{ className?: string }>;
   progress?: number;
 }
-
-const FILTER_OPTIONS: { value: GuestFilter; label: string }[] = [
-  { value: "all", label: "Alle" },
-  { value: "checked-in", label: "Eingecheckt" },
-  { value: "expected", label: "Erwartet" },
-  { value: "no-show", label: "No-Show" },
-];
 
 const OVERVIEW_CHART_CONFIG = {
   checkedIn: { label: "Eingecheckt", color: "#df2634" },
@@ -101,44 +99,6 @@ const surfaceClassName =
 
 function closeParentMenu(event: MouseEvent<HTMLButtonElement>) {
   event.currentTarget.closest("details")?.removeAttribute("open");
-}
-
-function getStatusCounts(guests: GuestRecord[]) {
-  return guests.reduce(
-    (accumulator, guest) => {
-      accumulator[guest.status] += 1;
-      return accumulator;
-    },
-    {
-      "checked-in": 0,
-      expected: 0,
-      "no-show": 0,
-    } as Record<GuestStatus, number>,
-  );
-}
-
-function roundToSingleDecimal(value: number) {
-  return Math.round(value * 10) / 10;
-}
-
-function formatRate(value: number) {
-  return `${value.toFixed(1)}%`;
-}
-
-function parseTimeToMinutes(value: string | null) {
-  if (!value) {
-    return -1;
-  }
-
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-function formatCurrentTime() {
-  return new Intl.DateTimeFormat("de-CH", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date());
 }
 
 function AppCard({

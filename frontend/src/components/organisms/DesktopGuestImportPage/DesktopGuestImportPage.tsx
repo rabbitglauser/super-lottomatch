@@ -15,16 +15,24 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { createGuest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const mappingGridClass =
   "xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.95fr)_minmax(0,0.9fr)]";
 
-interface GuestImportFile {
-  name: string;
-  sizeLabel: string;
-  status: string;
-}
+type GuestTextField =
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone"
+  | "street"
+  | "houseNumber"
+  | "postalCode"
+  | "city"
+  | "notes";
+
+const IGNORE_FIELD = "Ignorieren";
 
 const GUEST_IMPORT_FIELD_OPTIONS = [
   "Vorname",
@@ -36,13 +44,36 @@ const GUEST_IMPORT_FIELD_OPTIONS = [
   "PLZ",
   "Ort",
   "Notizen",
+  IGNORE_FIELD,
 ] as const;
 
-const guestImportMappings: {
+const SYSTEM_FIELD_TO_KEY: Record<string, GuestTextField | undefined> = {
+  Vorname: "firstName",
+  Nachname: "lastName",
+  "E-Mail": "email",
+  Telefon: "phone",
+  Strasse: "street",
+  Hausnummer: "houseNumber",
+  PLZ: "postalCode",
+  Ort: "city",
+  Notizen: "notes",
+};
+
+interface ParsedCsv {
+  headers: string[];
+  rows: string[][];
+}
+
+interface ColumnMapping {
   csvColumn: string;
   systemField: string;
-  example: string;
-}[] = [];
+}
+
+interface ImportResult {
+  created: number;
+  skipped: number;
+  failed: number;
+}
 
 function formatFileSize(bytes: number) {
   if (bytes >= 1024 * 1024) {
@@ -52,7 +83,40 @@ function formatFileSize(bytes: number) {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function StepIndicator() {
+function parseCsv(text: string): ParsedCsv {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+
+  if (lines.length === 0) {
+    return { headers: [], rows: [] };
+  }
+
+  const delimiter = lines[0].includes(";") ? ";" : ",";
+  const parseLine = (line: string) =>
+    line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ""));
+
+  return {
+    headers: parseLine(lines[0]),
+    rows: lines.slice(1).map(parseLine),
+  };
+}
+
+function autoMapField(header: string): string {
+  const value = header.toLowerCase().trim();
+
+  if (/(vorname|first)/.test(value)) return "Vorname";
+  if (/(nachname|surname|last)/.test(value)) return "Nachname";
+  if (/(mail)/.test(value)) return "E-Mail";
+  if (/(tel|phone|natel)/.test(value)) return "Telefon";
+  if (/(strasse|street|str\b)/.test(value)) return "Strasse";
+  if (/(haus|nummer|^nr|number)/.test(value)) return "Hausnummer";
+  if (/(plz|zip|postal)/.test(value)) return "PLZ";
+  if (/(ort|city|stadt)/.test(value)) return "Ort";
+  if (/(notiz|note|bemerk)/.test(value)) return "Notizen";
+
+  return IGNORE_FIELD;
+}
+
+function StepIndicator({ active }: { active: boolean }) {
   return (
     <div className="flex items-center gap-4 sm:gap-5">
       <div className="inline-flex items-center gap-2 rounded-full bg-[#f9e9ea] px-4 py-2 text-sm font-semibold tracking-[0.14em] text-accent-red">
@@ -62,7 +126,12 @@ function StepIndicator() {
 
       <div className="h-px w-16 bg-[#dfcaca] sm:w-24" />
 
-      <span className="text-sm font-semibold tracking-[0.14em] text-muted-warm">
+      <span
+        className={cn(
+          "text-sm font-semibold tracking-[0.14em]",
+          active ? "text-accent-red" : "text-muted-warm",
+        )}
+      >
         SCHRITT 2
       </span>
     </div>
@@ -70,10 +139,14 @@ function StepIndicator() {
 }
 
 function SelectedFileRow({
-  file,
+  name,
+  sizeLabel,
+  status,
   onRemove,
 }: {
-  file: GuestImportFile;
+  name: string;
+  sizeLabel: string;
+  status: string;
   onRemove: () => void;
 }) {
   return (
@@ -83,9 +156,9 @@ function SelectedFileRow({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-charcoal">{file.name}</p>
+        <p className="truncate text-sm font-semibold text-charcoal">{name}</p>
         <p className="mt-1 text-sm text-muted-warm">
-          {file.sizeLabel} • {file.status}
+          {sizeLabel} • {status}
         </p>
       </div>
 
@@ -101,9 +174,20 @@ function SelectedFileRow({
   );
 }
 
-function UploadCard() {
+function UploadCard({
+  fileName,
+  fileSizeLabel,
+  rowCount,
+  onSelectFile,
+  onRemove,
+}: {
+  fileName: string | null;
+  fileSizeLabel: string;
+  rowCount: number;
+  onSelectFile: (file: File) => void;
+  onRemove: () => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<GuestImportFile | null>(null);
 
   const openFileDialog = () => {
     inputRef.current?.click();
@@ -112,19 +196,13 @@ function UploadCard() {
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
+    if (file) {
+      onSelectFile(file);
     }
-
-    setSelectedFile({
-      name: file.name,
-      sizeLabel: formatFileSize(file.size),
-      status: "Bereit zum Mapping",
-    });
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
+  const handleRemove = () => {
+    onRemove();
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -143,7 +221,7 @@ function UploadCard() {
             Datei auswählen
           </h2>
           <p className="mt-1 text-sm text-muted-warm">
-            CSV oder Excel Datei hierher ziehen
+            CSV Datei mit Kopfzeile hochladen
           </p>
         </div>
       </div>
@@ -151,7 +229,7 @@ function UploadCard() {
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,.xlsx,.xls"
+        accept=".csv,text/csv"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -173,13 +251,18 @@ function UploadCard() {
         </p>
 
         <p className="mt-5 text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-muted-warm">
-          MAX. 10MB • CSV, XLSX
+          MAX. 10MB • CSV
         </p>
       </button>
 
-      {selectedFile ? (
+      {fileName ? (
         <div className="mt-5">
-          <SelectedFileRow file={selectedFile} onRemove={removeFile} />
+          <SelectedFileRow
+            name={fileName}
+            sizeLabel={fileSizeLabel}
+            status={`${rowCount} Zeile(n) erkannt`}
+            onRemove={handleRemove}
+          />
         </div>
       ) : null}
     </section>
@@ -200,8 +283,8 @@ function ProTipCard() {
           </p>
           <p className="mt-3 text-sm leading-7 text-[#58361b]">
             Achten Sie darauf, dass Ihre Tabelle eine Kopfzeile hat (z.B.
-            Name, E-Mail). Das macht die Zuordnung im nächsten Schritt
-            kinderleicht!
+            Vorname, Nachname, Strasse, PLZ, Ort). Pflichtfelder sind Vor- und
+            Nachname sowie die vollständige Adresse.
           </p>
         </div>
       </div>
@@ -209,7 +292,25 @@ function ProTipCard() {
   );
 }
 
-function MappingTable() {
+function MappingTable({
+  headers,
+  rows,
+  mappings,
+  onMappingChange,
+  onImport,
+  importing,
+  result,
+}: {
+  headers: string[];
+  rows: string[][];
+  mappings: ColumnMapping[];
+  onMappingChange: (index: number, systemField: string) => void;
+  onImport: () => void;
+  importing: boolean;
+  result: ImportResult | null;
+}) {
+  const hasFile = headers.length > 0;
+
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-[0_18px_42px_rgba(42,23,23,0.06)] sm:p-7">
       <div className="flex flex-col gap-4 border-b border-[#efe1df] pb-5 sm:flex-row sm:items-start sm:justify-between">
@@ -218,7 +319,7 @@ function MappingTable() {
             Spalten zuordnen
           </h2>
           <p className="mt-1 text-sm text-muted-warm">
-            Prüfen Sie die Vorschau der ersten 3 Zeilen
+            Prüfen Sie die Vorschau der ersten Zeile
           </p>
         </div>
 
@@ -240,57 +341,68 @@ function MappingTable() {
       </div>
 
       <div className="mt-2 space-y-4">
-        {guestImportMappings.map((mapping) => (
-          <div
-            key={mapping.csvColumn}
-            className={cn(
-              "rounded-[1.6rem] bg-[#fff8f8] px-4 py-4 xl:grid xl:items-center xl:gap-6 xl:px-5",
-              mappingGridClass,
-            )}
-          >
-            <div className="xl:hidden">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/80">
-                CSV Spalte
+        {hasFile ? (
+          mappings.map((mapping, index) => (
+            <div
+              key={`${mapping.csvColumn}-${index}`}
+              className={cn(
+                "rounded-[1.6rem] bg-[#fff8f8] px-4 py-4 xl:grid xl:items-center xl:gap-6 xl:px-5",
+                mappingGridClass,
+              )}
+            >
+              <div className="xl:hidden">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/80">
+                  CSV Spalte
+                </p>
+              </div>
+              <p className="mt-2 text-sm font-semibold text-charcoal xl:mt-0">
+                {mapping.csvColumn || `Spalte ${index + 1}`}
               </p>
-            </div>
-            <p className="mt-2 text-sm font-semibold text-charcoal xl:mt-0">
-              {mapping.csvColumn}
-            </p>
 
-            <div className="mt-4 xl:mt-0">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/80 xl:hidden">
-                System-Feld
-              </p>
-              <div className="relative mt-2 xl:mt-0">
-                <select
-                  defaultValue={mapping.systemField}
-                  className="h-14 w-full appearance-none rounded-2xl border border-transparent bg-input-bg px-4 pr-12 text-sm font-medium text-charcoal outline-none transition focus:border-accent-red/15 focus:ring-4 focus:ring-accent-red/10"
-                >
-                  {GUEST_IMPORT_FIELD_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
+              <div className="mt-4 xl:mt-0">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/80 xl:hidden">
+                  System-Feld
+                </p>
+                <div className="relative mt-2 xl:mt-0">
+                  <select
+                    value={mapping.systemField}
+                    onChange={(event) => onMappingChange(index, event.target.value)}
+                    className="h-14 w-full appearance-none rounded-2xl border border-transparent bg-input-bg px-4 pr-12 text-sm font-medium text-charcoal outline-none transition focus:border-accent-red/15 focus:ring-4 focus:ring-accent-red/10"
+                  >
+                    {GUEST_IMPORT_FIELD_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-muted-warm" />
+                </div>
+              </div>
+
+              <div className="mt-4 xl:mt-0">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/80 xl:hidden">
+                  Beispiel
+                </p>
+                <p className="mt-2 truncate text-sm text-muted-warm xl:mt-0">
+                  {rows[0]?.[index] ?? "—"}
+                </p>
               </div>
             </div>
-
-            <div className="mt-4 xl:mt-0">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-warm/80 xl:hidden">
-                Beispiel
-              </p>
-              <p className="mt-2 text-sm text-muted-warm xl:mt-0">
-                {mapping.example}
-              </p>
-            </div>
+          ))
+        ) : (
+          <div className="rounded-[1.6rem] bg-[#fff8f8] px-4 py-8 text-center text-sm text-muted-warm">
+            Laden Sie eine CSV-Datei hoch, um Spalten aus der Datenbankstruktur
+            zuzuordnen.
           </div>
-        ))}
-        <div className="rounded-[1.6rem] bg-[#fff8f8] px-4 py-8 text-center text-sm text-muted-warm">
-          Laden Sie eine Datei hoch, um Spalten aus der Datenbankstruktur
-          zuzuordnen.
-        </div>
+        )}
       </div>
+
+      {result ? (
+        <p className="mt-6 rounded-2xl bg-[#e7f6ec] px-5 py-4 text-sm font-medium text-[#1f7a44]">
+          {result.created} Gäste importiert, {result.skipped} übersprungen
+          {result.failed > 0 ? `, ${result.failed} fehlgeschlagen` : ""}.
+        </p>
+      ) : null}
 
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Link
@@ -302,10 +414,11 @@ function MappingTable() {
 
         <Button
           type="button"
-          onClick={() => console.log("Gastimport gestartet")}
-          className="h-[58px] rounded-[1.3rem] bg-gradient-to-r from-[#ef3543] to-[#b90f1d] px-6 text-base font-semibold text-white shadow-[0_20px_38px_rgba(220,31,45,0.22)] hover:opacity-95 sm:w-[200px]"
+          onClick={onImport}
+          disabled={!hasFile || rows.length === 0 || importing}
+          className="h-[58px] rounded-[1.3rem] bg-gradient-to-r from-[#ef3543] to-[#b90f1d] px-6 text-base font-semibold text-white shadow-[0_20px_38px_rgba(220,31,45,0.22)] hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 sm:w-[200px]"
         >
-          Import starten
+          {importing ? "Import läuft..." : "Import starten"}
           <ArrowRight className="size-5" />
         </Button>
       </div>
@@ -314,6 +427,118 @@ function MappingTable() {
 }
 
 export default function DesktopGuestImportPage() {
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSizeLabel, setFileSizeLabel] = useState("");
+  const [parsed, setParsed] = useState<ParsedCsv>({ headers: [], rows: [] });
+  const [mappings, setMappings] = useState<ColumnMapping[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSelectFile = async (file: File) => {
+    setError(null);
+    setResult(null);
+
+    try {
+      const text = await file.text();
+      const data = parseCsv(text);
+
+      if (data.headers.length === 0) {
+        setError("Die Datei enthält keine erkennbaren Spalten.");
+        return;
+      }
+
+      setFileName(file.name);
+      setFileSizeLabel(formatFileSize(file.size));
+      setParsed(data);
+      setMappings(
+        data.headers.map((header) => ({
+          csvColumn: header,
+          systemField: autoMapField(header),
+        })),
+      );
+    } catch {
+      setError("Die Datei konnte nicht gelesen werden.");
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFileName(null);
+    setFileSizeLabel("");
+    setParsed({ headers: [], rows: [] });
+    setMappings([]);
+    setResult(null);
+    setError(null);
+  };
+
+  const handleMappingChange = (index: number, systemField: string) => {
+    setMappings((current) =>
+      current.map((mapping, mappingIndex) =>
+        mappingIndex === index ? { ...mapping, systemField } : mapping,
+      ),
+    );
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    setResult(null);
+    setError(null);
+
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const row of parsed.rows) {
+      const draft: Partial<Record<GuestTextField, string>> = {};
+
+      mappings.forEach((mapping, index) => {
+        const key = SYSTEM_FIELD_TO_KEY[mapping.systemField];
+
+        if (key) {
+          draft[key] = (row[index] ?? "").trim();
+        }
+      });
+
+      const { firstName, lastName, street, houseNumber, postalCode, city } = draft;
+
+      if (
+        !firstName ||
+        !lastName ||
+        !street ||
+        !houseNumber ||
+        !postalCode ||
+        !city
+      ) {
+        skipped += 1;
+        continue;
+      }
+
+      try {
+        await createGuest({
+          firstName,
+          lastName,
+          street,
+          houseNumber,
+          postalCode,
+          city,
+          phone: draft.phone || undefined,
+          email: draft.email || undefined,
+          notes: draft.notes || undefined,
+          allowEmailMarketing: Boolean(draft.email),
+          allowPostMarketing: true,
+        });
+        created += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    setResult({ created, skipped, failed });
+    setImporting(false);
+  };
+
+  const hasFile = parsed.headers.length > 0;
+
   return (
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
@@ -328,20 +553,43 @@ export default function DesktopGuestImportPage() {
             </p>
           </div>
 
-          <StepIndicator />
+          <StepIndicator active={hasFile} />
         </header>
 
         <div className="mt-8 h-1.5 overflow-hidden rounded-full bg-[#efdfdf]">
-          <div className="h-full w-[48%] rounded-full bg-gradient-to-r from-[#ef3543] to-[#b90f1d]" />
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#ef3543] to-[#b90f1d] transition-all"
+            style={{ width: hasFile ? "100%" : "48%" }}
+          />
         </div>
+
+        {error ? (
+          <p className="mt-6 rounded-2xl bg-[#fdecec] px-5 py-4 text-sm font-medium text-accent-red">
+            {error}
+          </p>
+        ) : null}
 
         <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(320px,0.78fr)_minmax(0,1.22fr)] xl:items-start">
           <div className="space-y-6">
-            <UploadCard />
+            <UploadCard
+              fileName={fileName}
+              fileSizeLabel={fileSizeLabel}
+              rowCount={parsed.rows.length}
+              onSelectFile={handleSelectFile}
+              onRemove={handleRemoveFile}
+            />
             <ProTipCard />
           </div>
 
-          <MappingTable />
+          <MappingTable
+            headers={parsed.headers}
+            rows={parsed.rows}
+            mappings={mappings}
+            onMappingChange={handleMappingChange}
+            onImport={handleImport}
+            importing={importing}
+            result={result}
+          />
         </div>
       </div>
     </div>

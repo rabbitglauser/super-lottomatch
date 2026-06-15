@@ -220,6 +220,20 @@ export interface RegisteredGuest {
   name: string;
 }
 
+export interface EventCreateInput {
+  name: string;
+  year: number;
+  location?: string;
+  days: { date: string }[];
+}
+
+export interface CreatedEvent {
+  id: string;
+  name: string;
+  year: number;
+  dayCount: number;
+}
+
 export interface MobileGuestSearchResult {
   id: string;
   name: string;
@@ -821,6 +835,82 @@ async function createGuestInSupabase(
   };
 }
 
+async function deleteGuestInSupabase(guestId: string): Promise<void> {
+  const supabase = await getSupabase();
+  const { error } = await supabase
+    .from("guests")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", guestId);
+
+  assertSupabaseOk(error);
+}
+
+async function deletePrizeInSupabase(prizeId: string): Promise<void> {
+  const supabase = await getSupabase();
+  // A prize may be referenced by a draw (FK). Remove the draw first.
+  const { error: drawError } = await supabase
+    .from("draws")
+    .delete()
+    .eq("prize_id", prizeId);
+
+  assertSupabaseOk(drawError);
+
+  const { error } = await supabase.from("prizes").delete().eq("id", prizeId);
+
+  assertSupabaseOk(error);
+}
+
+async function createEventInSupabase(
+  input: EventCreateInput,
+): Promise<CreatedEvent> {
+  const sortedDates = input.days
+    .map((day) => day.date)
+    .filter((date) => Boolean(date))
+    .sort();
+
+  if (sortedDates.length === 0) {
+    throw new Error("Mindestens ein Event-Tag mit Datum ist erforderlich.");
+  }
+
+  const supabase = await getSupabase();
+  const { data: event, error: eventError } = await supabase
+    .from("lotto_events")
+    .insert({
+      name: input.name.trim(),
+      event_year: input.year,
+      location: cleanOptional(input.location),
+      start_date: sortedDates[0],
+      end_date: sortedDates[sortedDates.length - 1],
+    })
+    .select("id, name, event_year")
+    .single<{ id: number; name: string; event_year: number }>();
+
+  assertSupabaseOk(eventError);
+
+  if (!event) {
+    throw new Error("Event could not be created");
+  }
+
+  const dayRows = sortedDates.map((date, index) => ({
+    event_id: event.id,
+    day_number: index + 1,
+    event_date: date,
+  }));
+
+  const { error: daysError } = await supabase
+    .from("event_days")
+    .insert(dayRows);
+
+  assertSupabaseOk(daysError);
+
+  return {
+    id: String(event.id),
+    name: event.name,
+    year: event.event_year,
+    dayCount: dayRows.length,
+  };
+}
+
 async function searchMobileGuestsInSupabase(
   query: string,
 ): Promise<MobileGuestSearchResult[]> {
@@ -1287,6 +1377,27 @@ export function createGuest(input: GuestRegistrationInput) {
         body: JSON.stringify(input),
       })
     : createGuestInSupabase(input);
+}
+
+export function deleteGuest(guestId: string) {
+  return shouldUseHttpApi()
+    ? apiFetch<void>(`/guests/${guestId}`, { method: "DELETE" })
+    : deleteGuestInSupabase(guestId);
+}
+
+export function deletePrize(prizeId: string) {
+  return shouldUseHttpApi()
+    ? apiFetch<void>(`/prizes/${prizeId}`, { method: "DELETE" })
+    : deletePrizeInSupabase(prizeId);
+}
+
+export function createEvent(input: EventCreateInput) {
+  return shouldUseHttpApi()
+    ? apiFetch<CreatedEvent>("/events", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    : createEventInSupabase(input);
 }
 
 export function searchMobileGuests(query: string) {

@@ -21,6 +21,11 @@ const GUEST_EXPORT_HEADERS = [
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${getRuntimeApiBaseUrl()}${path}`, {
+  if (!API_BASE_URL) {
+    throw new Error("API base URL is not configured");
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

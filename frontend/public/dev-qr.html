@@ -94,7 +94,7 @@
 
   <div id="custom-area"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script>
     const guests = [
       ["G-000001", "Hans Müller"],
@@ -145,15 +145,22 @@
     }
 
     const grid = document.getElementById("grid");
-    guests.forEach(([code, name]) => renderCard(grid, code, name));
 
-    document.getElementById("custom-btn").addEventListener("click", () => {
-      const value = document.getElementById("custom-input").value.trim();
-      if (!value) return;
-      const area = document.getElementById("custom-area");
-      area.innerHTML = "";
-      renderCard(area, value, "Eigener Code");
-    });
+    if (typeof QRCode === "undefined") {
+      grid.innerHTML =
+        '<p style="color:#B3011A;font-weight:600">QR-Bibliothek konnte nicht geladen werden ' +
+        '(CDN blockiert oder offline?). Bitte Internetverbindung und Adblocker pruefen.</p>';
+    } else {
+      guests.forEach(([code, name]) => renderCard(grid, code, name));
+
+      document.getElementById("custom-btn").addEventListener("click", () => {
+        const value = document.getElementById("custom-input").value.trim();
+        if (!value) return;
+        const area = document.getElementById("custom-area");
+        area.innerHTML = "";
+        renderCard(area, value, "Eigener Code");
+      });
+    }
   </script>
 </body>
 </html>

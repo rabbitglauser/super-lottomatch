@@ -34,6 +34,7 @@ import PageReveal from "@/components/atoms/PageReveal";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import { Button } from "@/components/ui/button";
 import {
+  deletePrize,
   fetchPrizes,
   type PrizeCategory,
   type PrizeData,
@@ -261,9 +262,11 @@ function PrizeFilterMenu({
 function PrizeRowMenu({
   prizeName,
   onAction,
+  onDelete,
 }: {
   prizeName: string;
   onAction: (label: string) => void;
+  onDelete: () => void;
 }) {
   const actions = [
     "Details anzeigen",
@@ -284,7 +287,11 @@ function PrizeRowMenu({
             key={action}
             type="button"
             onClick={(event) => {
-              onAction(`${action} – ${prizeName}`);
+              if (action === "Löschen") {
+                onDelete();
+              } else {
+                onAction(`${action} – ${prizeName}`);
+              }
               closeParentMenu(event);
             }}
             className={cn(
@@ -303,9 +310,11 @@ function PrizeRowMenu({
 function PrizeDesktopRow({
   prize,
   onAction,
+  onDelete,
 }: {
   prize: PrizeViewModel;
   onAction: (label: string) => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="grid min-h-[92px] grid-cols-[minmax(0,2.4fr)_minmax(118px,0.9fr)_minmax(0,1.1fr)_110px_110px_44px] items-center gap-4 px-6 py-4 transition hover:bg-[#fff7f7]">
@@ -332,7 +341,11 @@ function PrizeDesktopRow({
       <PrizeStatusBadge status={prize.status} />
 
       <div className="flex justify-end">
-        <PrizeRowMenu prizeName={prize.name} onAction={onAction} />
+        <PrizeRowMenu
+          prizeName={prize.name}
+          onAction={onAction}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );
@@ -341,9 +354,11 @@ function PrizeDesktopRow({
 function PrizeMobileCard({
   prize,
   onAction,
+  onDelete,
 }: {
   prize: PrizeViewModel;
   onAction: (label: string) => void;
+  onDelete: () => void;
 }) {
   return (
     <article className="rounded-[24px] border border-[#f0e4e4] bg-white px-4 py-4 shadow-[0_10px_24px_rgba(31,29,29,0.04)]">
@@ -387,7 +402,11 @@ function PrizeMobileCard({
                 </p>
               </div>
 
-              <PrizeRowMenu prizeName={prize.name} onAction={onAction} />
+              <PrizeRowMenu
+                prizeName={prize.name}
+                onAction={onAction}
+                onDelete={onDelete}
+              />
             </div>
           </div>
         </div>
@@ -609,6 +628,35 @@ export default function DesktopPrizeManagementPage() {
     console.info(`${label} ist noch nicht verbunden.`);
   };
 
+  const handleDeletePrize = (prizeId: string) => {
+    const prize = prizeData?.prizes.find((item) => item.id === prizeId);
+
+    if (!prize) {
+      return;
+    }
+
+    if (!window.confirm(`Preis "${prize.name}" wirklich löschen?`)) {
+      return;
+    }
+
+    const previousData = prizeData;
+    setPrizeData((current) =>
+      current
+        ? {
+            ...current,
+            prizes: current.prizes.filter((item) => item.id !== prizeId),
+            nextHighlight:
+              current.nextHighlight?.id === prizeId ? null : current.nextHighlight,
+          }
+        : current,
+    );
+
+    deletePrize(prizeId).catch(() => {
+      setPrizeData(previousData);
+      setError("Preis konnte nicht gelöscht werden.");
+    });
+  };
+
   return (
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
@@ -717,6 +765,7 @@ export default function DesktopPrizeManagementPage() {
                           <PrizeDesktopRow
                             prize={prize}
                             onAction={handlePlaceholderAction}
+                            onDelete={() => handleDeletePrize(prize.id)}
                           />
                         </div>
                       ))}
@@ -728,6 +777,7 @@ export default function DesktopPrizeManagementPage() {
                           key={prize.id}
                           prize={prize}
                           onAction={handlePlaceholderAction}
+                          onDelete={() => handleDeletePrize(prize.id)}
                         />
                       ))}
                     </div>

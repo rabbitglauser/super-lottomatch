@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import FormField from "@/components/molecules/FormField";
-import { API_BASE_URL } from "@/lib/constants";
+import { login } from "@/lib/api";
 
 export default function DesktopLoginForm() {
   const router = useRouter();
@@ -22,25 +22,15 @@ export default function DesktopLoginForm() {
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail, password }),
-      });
-
-      if (response.status === 401) {
-        setError("Ungültige Zugangsdaten");
-        return;
-      }
-
-      if (!response.ok) {
-        setError("Login konnte nicht verarbeitet werden");
-        return;
-      }
-
+      await login(normalizedEmail, password);
       router.push("/dashboard");
-    } catch {
-      setError("Verbindung zum Server fehlgeschlagen");
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      if (status === 401) {
+        setError("Ungültige Zugangsdaten");
+      } else {
+        setError("Login konnte nicht verarbeitet werden");
+      }
     } finally {
       setIsSubmitting(false);
     }

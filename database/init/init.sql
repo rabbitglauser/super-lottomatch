@@ -13,6 +13,7 @@ cascade;
 
 drop function if exists set_updated_at();
 drop function if exists validate_draw_same_event();
+drop function if exists authenticate_user(text, text);
 
 drop type if exists recipient_status;
 drop type if exists campaign_channel;
@@ -211,3 +212,38 @@ create table campaign_recipients (
 
   constraint unique_campaign_guest unique (campaign_id, guest_id)
 );
+
+-- pgcrypto is required for bcrypt password verification inside the RPC.
+create extension if not exists pgcrypto;
+
+-- authenticate_user is called by the frontend Supabase client.
+-- It verifies the password server-side so the hash is never exposed to clients.
+-- Returns one row on success, zero rows on failure.
+create function authenticate_user(p_email text, p_password text)
+returns table(id bigint, name text, email text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user record;
+begin
+  select u.id, u.first_name, u.last_name, u.email, u.password_hash
+  into v_user
+  from users u
+  where lower(u.email) = lower(trim(p_email)) and u.is_active = true;
+
+  if not found then
+    return;
+  end if;
+
+  -- crypt() from pgcrypto verifies bcrypt hashes (both $2a$ and $2b$ prefixes).
+  if crypt(p_password, v_user.password_hash) = v_user.password_hash then
+    return query
+      select
+        v_user.id,
+        (v_user.first_name || ' ' || v_user.last_name)::text,
+        v_user.email;
+  end if;
+end;
+$$;

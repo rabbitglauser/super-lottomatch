@@ -1344,3 +1344,47 @@ export function fetchAnalytics() {
     ? apiFetch<AnalyticsData>("/analytics")
     : fetchAnalyticsFromSupabase();
 }
+
+export interface LoginResult {
+  id: string;
+  name: string;
+  email: string;
+}
+
+async function loginWithSupabase(email: string, password: string): Promise<LoginResult> {
+  const supabase = await getSupabase();
+  const { data, error } = await supabase.rpc("authenticate_user", {
+    p_email: email,
+    p_password: password,
+  });
+
+  assertSupabaseOk(error);
+
+  const rows = data as Array<{ id: number; name: string; email: string }> | null;
+  const user = rows?.[0];
+
+  if (!user) {
+    throw Object.assign(new Error("Ungültige Zugangsdaten"), { status: 401 });
+  }
+
+  return { id: String(user.id), name: user.name, email: user.email };
+}
+
+export function login(email: string, password: string): Promise<LoginResult> {
+  if (HAS_SUPABASE_MODE) {
+    return loginWithSupabase(email, password);
+  }
+
+  if (!HAS_EXPLICIT_API_BASE_URL) {
+    return Promise.reject(
+      new Error(
+        "Login ist nicht konfiguriert. Bitte NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY oder NEXT_PUBLIC_API_BASE_URL setzen.",
+      ),
+    );
+  }
+
+  return apiFetch<LoginResult>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}

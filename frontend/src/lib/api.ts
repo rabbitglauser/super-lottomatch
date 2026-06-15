@@ -1375,6 +1375,14 @@ export function login(email: string, password: string): Promise<LoginResult> {
     return loginWithSupabase(email, password);
   }
 
+  if (process.env.NODE_ENV === "production") {
+    return Promise.reject(
+      new Error(
+        "Login ist nicht konfiguriert. Bitte NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel setzen.",
+      ),
+    );
+  }
+
   if (!HAS_EXPLICIT_API_BASE_URL) {
     return Promise.reject(
       new Error(

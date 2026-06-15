@@ -88,6 +88,78 @@ async def test_login_accepts_valid_credentials(client):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "user_id",
+        "first_name",
+        "last_name",
+        "email",
+        "password",
+        "password_hash",
+    ),
+    [
+        (
+            1,
+            "Nina",
+            "Odermatt",
+            "nina.odermatt@stv-ennetbuergen.ch",
+            "admin-1234",
+            "$2a$12$QpZ4bXEyHh6nf1kg2paEEuQYNloOub..REq0G/14bM5VIFWzZ9Q82",
+        ),
+        (
+            2,
+            "Marco",
+            "Bucher",
+            "marco.bucher@stv-ennetbuergen.ch",
+            "member-1234",
+            "$2a$12$quyEM2wg0Dsho./NMpuj0.MJsrutqROUdskIPEh68gTLRUYO/pUL.",
+        ),
+        (
+            3,
+            "Sabrina",
+            "Hess",
+            "sabrina.hess@stv-ennetbuergen.ch",
+            "member-1234",
+            "$2a$12$B0ozvLeP2HsrsoBT6lVW9OuVNsZyZQm1/ZKpziV3zO0XJRUYCi.du",
+        ),
+    ],
+)
+async def test_login_accepts_seeded_bcrypt_hashes(
+    client,
+    user_id,
+    first_name,
+    last_name,
+    email,
+    password,
+    password_hash,
+):
+    override_db(
+        SimpleNamespace(
+            id=user_id,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password_hash=password_hash,
+        )
+    )
+
+    response = await client.post(
+        "/auth/login",
+        json={
+            "email": email,
+            "password": password,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": user_id,
+        "name": f"{first_name} {last_name}",
+        "email": email,
+    }
+
+
+@pytest.mark.asyncio
 async def test_login_rejects_invalid_password(client):
     override_db(
         SimpleNamespace(
@@ -118,8 +190,8 @@ async def test_login_rejects_unknown_or_inactive_user(client):
     response = await client.post(
         "/auth/login",
         json={
-            "email": "inactive@example.ch",
-            "password": "valid-password",
+            "email": "lukas.wyrsch@stv-ennetbuergen.ch",
+            "password": "inactive-1234",
         },
     )
 

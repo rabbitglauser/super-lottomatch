@@ -3,6 +3,10 @@ import { API_BASE_URL } from "@/lib/api-config";
 const APP_TIME_ZONE = "Europe/Zurich";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  if (!API_BASE_URL) {
+    throw new Error("API base URL is not configured");
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {

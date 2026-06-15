@@ -14,6 +14,13 @@ function isSupabaseProjectUrl(value: string) {
   }
 }
 
+function hasSupabaseConfig() {
+  return Boolean(
+    cleanUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      cleanUrl(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+  );
+}
+
 function resolveApiBaseUrl() {
   const configuredUrl =
     cleanUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ??
@@ -21,6 +28,10 @@ function resolveApiBaseUrl() {
 
   if (configuredUrl && !isSupabaseProjectUrl(configuredUrl)) {
     return configuredUrl;
+  }
+
+  if (!configuredUrl && hasSupabaseConfig()) {
+    return undefined;
   }
 
   if (configuredUrl && process.env.NODE_ENV === "production") {

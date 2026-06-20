@@ -9,8 +9,6 @@ import {
   Users,
 } from "lucide-react";
 
-export { API_BASE_URL } from "@/lib/api-config";
-
 export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 export interface NavItem {

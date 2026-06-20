@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import FormField from "@/components/molecules/FormField";
-import { login } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 export default function DesktopLoginForm() {
   const router = useRouter();
@@ -21,16 +21,19 @@ export default function DesktopLoginForm() {
     setIsSubmitting(true);
 
     try {
-      const normalizedEmail = email.trim().toLowerCase();
-      await login(normalizedEmail, password);
-      router.push("/dashboard");
-    } catch (error) {
-      const status = (error as { status?: number }).status;
-      if (status === 401) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
         setError("Ungültige Zugangsdaten");
-      } else {
-        setError("Login konnte nicht verarbeitet werden");
+        return;
       }
+
+      router.push("/dashboard");
+    } catch {
+      setError("Verbindung zum Server fehlgeschlagen");
     } finally {
       setIsSubmitting(false);
     }
@@ -54,8 +57,6 @@ export default function DesktopLoginForm() {
           type="email"
           placeholder="name@beispiel.ch"
           icon={Mail}
-          required
-          autoComplete="username"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
@@ -66,8 +67,6 @@ export default function DesktopLoginForm() {
           type="password"
           placeholder="••••••••"
           icon={Lock}
-          required
-          autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />

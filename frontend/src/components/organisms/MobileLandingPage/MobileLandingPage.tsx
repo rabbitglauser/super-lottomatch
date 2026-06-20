@@ -105,10 +105,27 @@ export default function MobileLandingPage() {
         </section>
 
         <nav className="fixed bottom-0 left-1/2 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-4 border-t border-[#f0e1e3] bg-white px-3 py-3">
-          <BottomNavItem active icon={<Calendar size={21} />} label="HEUTE" />
-          <BottomNavItem icon={<QrCode size={21} />} label="CHECK-IN" />
-          <BottomNavItem icon={<Search size={21} />} label="SUCHEN" />
-          <BottomNavItem icon={<UserPlus size={21} />} label="NEUER GAST" />
+          <BottomNavItem
+            active
+            href="/mobile"
+            icon={<Calendar size={21} />}
+            label="HEUTE"
+          />
+          <BottomNavItem
+            href="/mobile/scanner"
+            icon={<QrCode size={21} />}
+            label="CHECK-IN"
+          />
+          <BottomNavItem
+            href="/mobile/search"
+            icon={<Search size={21} />}
+            label="SUCHEN"
+          />
+          <BottomNavItem
+            href="/mobile/register"
+            icon={<UserPlus size={21} />}
+            label="NEUER GAST"
+          />
         </nav>
       </div>
     </main>
@@ -143,22 +160,25 @@ function ActivityItem({
 }
 
 function BottomNavItem({
+  href,
   icon,
   label,
   active = false,
 }: {
+  href: string;
   icon: ReactNode;
   label: string;
   active?: boolean;
 }) {
   return (
-    <div
+    <Link
+      href={href}
       className={`flex flex-col items-center justify-center rounded-2xl px-2 py-2 text-center text-[11px] font-bold ${
         active ? "bg-[#ffe8eb] text-[#e52535]" : "text-[#9b8b8d]"
       }`}
     >
       {icon}
       <span className="mt-1">{label}</span>
-    </div>
+    </Link>
   );
 }

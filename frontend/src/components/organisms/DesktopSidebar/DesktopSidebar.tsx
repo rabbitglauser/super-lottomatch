@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import DesktopSidebarHeader from "@/components/molecules/DesktopSidebarHeader";
@@ -14,7 +15,10 @@ export default function DesktopSidebar() {
       </div>
 
       <div className="p-4">
-        <Button className="w-full bg-brand text-white hover:bg-brand/90">
+        <Button
+          render={<Link href="/dashboard/events" />}
+          className="w-full bg-brand text-white hover:bg-brand/90"
+        >
           <Plus className="size-4" />
           New Event
         </Button>

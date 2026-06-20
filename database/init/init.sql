@@ -147,7 +147,13 @@ create table prizes (
   title varchar(150) not null,
   description text,
   value_chf numeric(10, 2) not null default 0,
-  created_at timestamptz not null default now()
+  winner_count int not null default 1,
+  eligibility varchar(20) not null default 'checked_in',
+  created_at timestamptz not null default now(),
+
+  constraint chk_prizes_winner_count_positive check (winner_count > 0),
+  constraint chk_prizes_eligibility
+    check (eligibility in ('all', 'checked_in'))
 );
 
 create table draws (

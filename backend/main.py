@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import LAN_ORIGIN_REGEX, get_cors_origins
 from core.guest_codes import normalize_guest_code
-from routers import analytics, auth, checkins, dashboard, guests, prizes
+from routers import analytics, auth, checkins, dashboard, events, guests, prizes
 
 __all__ = ["app", "normalize_guest_code"]
 
@@ -26,6 +26,7 @@ async def root():
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
+app.include_router(events.router)
 app.include_router(guests.router)
 app.include_router(checkins.router)
 app.include_router(prizes.router)

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import PageReveal from "@/components/atoms/PageReveal";
 import DesktopEventDayCard from "@/components/molecules/DesktopEventDayCard";
 import type { EventDay } from "@/lib/api";
@@ -12,12 +14,12 @@ export default function DesktopEventDaysPanel({
       <PageReveal delay={340} variant="right">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-charcoal">Event-Tage</h2>
-          <a
-            href="#"
+          <Link
+            href="/dashboard/events"
             className="text-sm font-medium text-accent-red hover:underline"
           >
             Alle anzeigen
-          </a>
+          </Link>
         </div>
       </PageReveal>
 

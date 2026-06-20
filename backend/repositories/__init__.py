@@ -71,6 +71,54 @@ class EventRepository:
             {"event_id": event_id},
         ).all()
 
+    def insert_event(self, payload: dict[str, object]):
+        return self.db.execute(
+            text(
+                """
+                insert into lotto_events (
+                  name,
+                  event_year,
+                  location,
+                  start_date,
+                  end_date
+                )
+                values (
+                  :name,
+                  :event_year,
+                  :location,
+                  :start_date,
+                  :end_date
+                )
+                returning id, name, event_year
+                """
+            ),
+            payload,
+        ).first()
+
+    def insert_event_days(self, event_id: int, dates: list[str]) -> None:
+        for day_number, event_date in enumerate(dates, start=1):
+            self.db.execute(
+                text(
+                    """
+                    insert into event_days (
+                      event_id,
+                      day_number,
+                      event_date
+                    )
+                    values (
+                      :event_id,
+                      :day_number,
+                      :event_date
+                    )
+                    """
+                ),
+                {
+                    "event_id": event_id,
+                    "day_number": day_number,
+                    "event_date": event_date,
+                },
+            )
+
 
 class GuestRepository:
     def __init__(self, db: Session):
@@ -247,6 +295,19 @@ class GuestRepository:
             {"guest_id": guest_id},
         ).first()
 
+    def soft_delete(self, guest_id: int):
+        return self.db.execute(
+            text(
+                """
+                update guests
+                set deleted_at = current_timestamp
+                where id = :guest_id and deleted_at is null
+                returning id
+                """
+            ),
+            {"guest_id": guest_id},
+        ).first()
+
 
 class CheckInRepository:
     def __init__(self, db: Session):
@@ -287,7 +348,9 @@ class CheckInRepository:
 
     def find_event_day(self, event_day_id: int):
         return self.db.execute(
-            text("select id, event_id, day_number, event_date from event_days where id = :id"),
+            text(
+                "select id, event_id, day_number, event_date from event_days where id = :id"
+            ),
             {"id": event_day_id},
         ).first()
 
@@ -409,6 +472,8 @@ class PrizeRepository:
                   p.title,
                   p.description,
                   p.value_chf,
+                  p.winner_count,
+                  p.eligibility,
                   p.event_day_id,
                   d.id as draw_id
                 from prizes p
@@ -420,6 +485,94 @@ class PrizeRepository:
             ),
             {"event_id": event_id},
         ).all()
+
+    def event_capacity(self, event_id: int):
+        """Eligible guest pool: distinct guests registered for the event."""
+        return self.db.execute(
+            text(
+                """
+                select count(distinct g.id) as capacity
+                from guests g
+                where g.deleted_at is null
+                """
+            ),
+            {"event_id": event_id},
+        ).first()
+
+    def event_day_belongs_to_event(self, event_day_id: int, event_id: int):
+        return self.db.execute(
+            text(
+                """
+                select id
+                from event_days
+                where id = :event_day_id and event_id = :event_id
+                """
+            ),
+            {"event_day_id": event_day_id, "event_id": event_id},
+        ).first()
+
+    def insert_prize(self, payload: dict[str, object]):
+        return self.db.execute(
+            text(
+                """
+                insert into prizes (
+                  event_day_id,
+                  title,
+                  description,
+                  value_chf,
+                  winner_count,
+                  eligibility
+                )
+                values (
+                  :event_day_id,
+                  :title,
+                  :description,
+                  :value_chf,
+                  :winner_count,
+                  :eligibility
+                )
+                returning id, event_day_id, title, description, value_chf,
+                  winner_count, eligibility
+                """
+            ),
+            payload,
+        ).first()
+
+    def update_prize(self, prize_id: int, payload: dict[str, object]):
+        return self.db.execute(
+            text(
+                """
+                update prizes
+                set title = :title,
+                  description = :description,
+                  value_chf = :value_chf,
+                  winner_count = :winner_count,
+                  eligibility = :eligibility
+                where id = :prize_id
+                returning id, event_day_id, title, description, value_chf,
+                  winner_count, eligibility
+                """
+            ),
+            {**payload, "prize_id": prize_id},
+        ).first()
+
+    def draw_for_prize(self, prize_id: int):
+        return self.db.execute(
+            text("select id from draws where prize_id = :prize_id"),
+            {"prize_id": prize_id},
+        ).first()
+
+    def delete_prize(self, prize_id: int):
+        return self.db.execute(
+            text(
+                """
+                delete from prizes
+                where id = :prize_id
+                returning id
+                """
+            ),
+            {"prize_id": prize_id},
+        ).first()
 
 
 class AnalyticsRepository:

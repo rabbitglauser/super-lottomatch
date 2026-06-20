@@ -4,7 +4,7 @@
       "Bash(findstr /i \"papa xlsx sheetjs csv\")",
       "Bash(npm install *)",
       "Bash(npm run *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
       "Bash(npm run:*)",
       "Bash(npm ls:*)",
       "Bash(npm install:*)",
@@ -15,7 +15,12 @@
       "Bash(grep -E \"^D:.*\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\")",
       "Bash(curl *)",
       "Bash(xargs grep *)",
-      "Bash(xargs ls *)"
+      "Bash(xargs ls *)",
+      "Bash(python *)",
+      "Bash(node -e \"console.log\\(require\\('./frontend/node_modules/next/package.json'\\).version\\)\")",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(echo \"--- exit: $?\")"
     ]
   }
 }

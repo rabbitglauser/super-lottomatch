@@ -204,9 +204,12 @@ export default function MobileRegisterPage() {
               />
               <span>
                 Ich stimme der Verarbeitung meiner Daten gemaess der{" "}
-                <span className="font-semibold text-[#e12c39] underline">
+                <Link
+                  href="/datenschutz"
+                  className="font-semibold text-[#e12c39] underline"
+                >
                   Datenschutzerklaerung
-                </span>{" "}
+                </Link>{" "}
                 fuer den Check-in Prozess zu.
               </span>
             </label>

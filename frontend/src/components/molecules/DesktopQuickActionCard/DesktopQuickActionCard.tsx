@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -6,18 +7,20 @@ interface QuickActionCardProps {
   label: string;
   icon: LucideIcon;
   tone?: "light" | "red";
+  href: string;
 }
 
 export default function DesktopQuickActionCard({
   label,
   icon: Icon,
   tone = "light",
+  href,
 }: QuickActionCardProps) {
   const isRed = tone === "red";
 
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       className={cn(
         "group flex h-[120px] w-full flex-col items-center justify-center gap-3 rounded-2xl px-4 text-center transition-all duration-200",
         "hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/40",
@@ -38,6 +41,6 @@ export default function DesktopQuickActionCard({
         />
       </span>
       <span className="text-sm font-medium">{label}</span>
-    </button>
+    </Link>
   );
 }

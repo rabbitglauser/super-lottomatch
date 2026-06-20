@@ -202,7 +202,9 @@ async def test_login_rejects_unknown_or_inactive_user(client):
 def test_normalize_guest_code_accepts_raw_codes_and_urls():
     assert normalize_guest_code(" g-000123 ") == "G-000123"
     assert (
-        normalize_guest_code("https://example.ch/mobile/register/confirmation?code=g-000456")
+        normalize_guest_code(
+            "https://example.ch/mobile/register/confirmation?code=g-000456"
+        )
         == "G-000456"
     )
 

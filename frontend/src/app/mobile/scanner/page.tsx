@@ -23,6 +23,14 @@ type BarcodeDetectorInstance = {
 type BarcodeDetectorConstructor = new (options?: {
   formats?: string[];
 }) => BarcodeDetectorInstance;
+type TorchVideoTrack = MediaStreamTrack & {
+  getCapabilities: () => MediaTrackCapabilities & { torch?: boolean };
+  applyConstraints: (
+    constraints: MediaTrackConstraints & {
+      advanced?: Array<MediaTrackConstraintSet & { torch?: boolean }>;
+    },
+  ) => Promise<void>;
+};
 
 declare global {
   interface Window {
@@ -58,6 +66,7 @@ export default function MobileScannerPage() {
   >("idle");
   const [manualCode, setManualCode] = useState("");
   const [message, setMessage] = useState("Kamera wird vorbereitet...");
+  const [torchEnabled, setTorchEnabled] = useState(false);
 
   const stopCamera = useCallback(() => {
     if (frameRef.current !== null) {
@@ -67,7 +76,40 @@ export default function MobileScannerPage() {
 
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setTorchEnabled(false);
   }, []);
+
+  const handleToggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0] as
+      | TorchVideoTrack
+      | undefined;
+
+    if (!track) {
+      setMessage("Kamera zuerst starten.");
+      return;
+    }
+
+    const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
+      torch?: boolean;
+    };
+
+    if (!capabilities.torch) {
+      setMessage("Licht ist auf diesem Gerät nicht verfügbar.");
+      return;
+    }
+
+    const nextTorchState = !torchEnabled;
+
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: nextTorchState }],
+      });
+      setTorchEnabled(nextTorchState);
+      setMessage(nextTorchState ? "Licht ist eingeschaltet." : "Licht ist ausgeschaltet.");
+    } catch {
+      setMessage("Licht konnte nicht umgeschaltet werden.");
+    }
+  };
 
   const processCode = useCallback(
     async (rawCode: string, method: "qr_code" | "guest_code" = "qr_code") => {
@@ -192,9 +234,28 @@ export default function MobileScannerPage() {
             <h1 className="text-2xl font-bold">Scanner</h1>
           </div>
 
-          <div className="flex items-center gap-5 text-[#5b484b]">
-            <Flashlight size={26} />
-            <Info size={28} />
+          <div className="flex items-center gap-3 text-[#5b484b]">
+            <button
+              type="button"
+              onClick={handleToggleTorch}
+              aria-pressed={torchEnabled}
+              aria-label="Licht umschalten"
+              className={`inline-flex size-11 items-center justify-center rounded-xl transition ${
+                torchEnabled ? "bg-[#e52535] text-white" : "hover:bg-black/5"
+              }`}
+            >
+              <Flashlight size={26} />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setMessage("QR-Code ruhig im Rahmen halten oder Gast-Code unten eingeben.")
+              }
+              aria-label="Scanner-Hilfe anzeigen"
+              className="inline-flex size-11 items-center justify-center rounded-xl transition hover:bg-black/5"
+            >
+              <Info size={28} />
+            </button>
           </div>
         </header>
 

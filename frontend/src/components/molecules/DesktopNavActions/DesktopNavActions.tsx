@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   Bell,
@@ -17,6 +18,7 @@ import { fetchGuestExport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function DesktopNavActions() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -136,8 +138,16 @@ export default function DesktopNavActions() {
         ) : null}
       </div>
 
-      <IconButton icon={Bell} ariaLabel="Benachrichtigungen" />
-      <IconButton icon={CircleUser} ariaLabel="Profil" />
+      <IconButton
+        icon={Bell}
+        ariaLabel="Benachrichtigungen"
+        onClick={() => router.push("/dashboard/settings")}
+      />
+      <IconButton
+        icon={CircleUser}
+        ariaLabel="Profil"
+        onClick={() => router.push("/dashboard/settings")}
+      />
     </div>
   );
 }

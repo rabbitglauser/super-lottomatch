@@ -14,6 +14,7 @@ from core.formatting import (
     month_label,
 )
 from core.guest_codes import normalize_guest_code
+from core.raffle_rules import ELIGIBILITY_LABELS, validate_prize_config
 from core.security import verify_password
 from core.validation import clean_optional, require_text
 from repositories import (
@@ -27,11 +28,17 @@ from repositories import (
 from schemas import (
     CheckInByCodeRequest,
     CheckInByCodeResponse,
+    EventCreateRequest,
+    EventCreateResponse,
     GuestRegistrationRequest,
     GuestRegistrationResponse,
     GuestSearchResult,
     LoginRequest,
     LoginResponse,
+    PrizeConfigRequest,
+    PrizeConfigResponse,
+    PublicPrizeView,
+    PublicRaffleResponse,
 )
 
 
@@ -103,8 +110,7 @@ class DashboardService:
         delta = 0
         if last_year_guests:
             delta = round(
-                ((current_event_guests - last_year_guests) / last_year_guests)
-                * 100
+                ((current_event_guests - last_year_guests) / last_year_guests) * 100
             )
 
         event_days = []
@@ -261,6 +267,58 @@ class GuestService:
 
         return {"id": str(row.id), "marketingActive": bool(row.allow_email_marketing)}
 
+    def delete_guest(self, guest_id: int) -> None:
+        row = self.guests.soft_delete(guest_id)
+        self.db.commit()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="Guest not found")
+
+
+class EventService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.events = EventRepository(db)
+
+    def create_event(self, payload: EventCreateRequest) -> EventCreateResponse:
+        name = require_text(payload.name, "name")
+        sorted_dates = sorted(
+            {day.date.strip() for day in payload.days if day.date.strip()}
+        )
+
+        if not sorted_dates:
+            raise HTTPException(
+                status_code=422,
+                detail="Mindestens ein Event-Tag mit Datum ist erforderlich.",
+            )
+
+        if payload.year < 2000:
+            raise HTTPException(status_code=422, detail="Invalid event year")
+
+        event = self.events.insert_event(
+            {
+                "name": name,
+                "event_year": payload.year,
+                "location": clean_optional(payload.location),
+                "start_date": sorted_dates[0],
+                "end_date": sorted_dates[-1],
+            }
+        )
+
+        if event is None:
+            self.db.rollback()
+            raise HTTPException(status_code=500, detail="Event could not be saved")
+
+        self.events.insert_event_days(event.id, sorted_dates)
+        self.db.commit()
+
+        return EventCreateResponse(
+            id=str(event.id),
+            name=event.name,
+            year=event.event_year,
+            dayCount=len(sorted_dates),
+        )
+
 
 class CheckInService:
     def __init__(self, db: Session):
@@ -312,9 +370,7 @@ class CheckInService:
             "guests": guests,
         }
 
-    def create_by_code(
-        self, payload: CheckInByCodeRequest
-    ) -> CheckInByCodeResponse:
+    def create_by_code(self, payload: CheckInByCodeRequest) -> CheckInByCodeResponse:
         event = latest_event_or_404(self.events)
         day = latest_event_day_or_404(self.events, event.id)
         guest_code = normalize_guest_code(payload.code)
@@ -385,8 +441,128 @@ class CheckInService:
 
 class PrizeService:
     def __init__(self, db: Session):
+        self.db = db
         self.events = EventRepository(db)
         self.prizes = PrizeRepository(db)
+
+    def _event_capacity(self, event_id: int) -> int:
+        row = self.prizes.event_capacity(event_id)
+        return int(row.capacity) if row and row.capacity is not None else 0
+
+    @staticmethod
+    def _clean_config(payload: PrizeConfigRequest, capacity: int) -> dict[str, object]:
+        try:
+            return validate_prize_config(
+                title=payload.title,
+                winner_count=payload.winnerCount,
+                eligibility=payload.eligibility,
+                value_chf=payload.valueChf,
+                capacity=capacity,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @staticmethod
+    def _to_config_response(row) -> PrizeConfigResponse:
+        return PrizeConfigResponse(
+            id=str(row.id),
+            eventDayId=int(row.event_day_id),
+            title=row.title,
+            description=row.description,
+            valueChf=str(row.value_chf),
+            winnerCount=int(row.winner_count),
+            eligibility=row.eligibility,
+        )
+
+    def create_prize(self, payload: PrizeConfigRequest) -> PrizeConfigResponse:
+        event = latest_event_or_404(self.events)
+        if self.prizes.event_day_belongs_to_event(payload.eventDayId, event.id) is None:
+            raise HTTPException(
+                status_code=404, detail="Event day not found for current event"
+            )
+
+        cleaned = self._clean_config(payload, self._event_capacity(event.id))
+        row = self.prizes.insert_prize(
+            {
+                "event_day_id": payload.eventDayId,
+                "title": cleaned["title"],
+                "description": clean_optional(payload.description),
+                "value_chf": cleaned["value_chf"],
+                "winner_count": cleaned["winner_count"],
+                "eligibility": cleaned["eligibility"],
+            }
+        )
+        self.db.commit()
+
+        if row is None:
+            raise HTTPException(status_code=500, detail="Prize could not be saved")
+
+        return self._to_config_response(row)
+
+    def update_prize(
+        self, prize_id: int, payload: PrizeConfigRequest
+    ) -> PrizeConfigResponse:
+        event = latest_event_or_404(self.events)
+        cleaned = self._clean_config(payload, self._event_capacity(event.id))
+        row = self.prizes.update_prize(
+            prize_id,
+            {
+                "title": cleaned["title"],
+                "description": clean_optional(payload.description),
+                "value_chf": cleaned["value_chf"],
+                "winner_count": cleaned["winner_count"],
+                "eligibility": cleaned["eligibility"],
+            },
+        )
+        self.db.commit()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="Prize not found")
+
+        return self._to_config_response(row)
+
+    def delete_prize(self, prize_id: int) -> None:
+        if self.prizes.draw_for_prize(prize_id) is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Prize has already been drawn and cannot be deleted",
+            )
+
+        row = self.prizes.delete_prize(prize_id)
+        self.db.commit()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="Prize not found")
+
+    def get_public_raffle(self) -> PublicRaffleResponse:
+        event = latest_event_or_404(self.events)
+        rows = self.prizes.prize_rows_for_event(event.id)
+
+        prizes: list[PublicPrizeView] = []
+        total_winners = 0
+        for row in rows:
+            winner_count = int(getattr(row, "winner_count", 1) or 1)
+            total_winners += winner_count
+            eligibility = getattr(row, "eligibility", "checked_in")
+            prizes.append(
+                PublicPrizeView(
+                    id=str(row.id),
+                    name=row.title,
+                    description=row.description or "Keine Beschreibung hinterlegt.",
+                    category=self.prize_category(row.title, row.description),
+                    value=format_chf(row.value_chf),
+                    winnerCount=winner_count,
+                    eligibilityLabel=ELIGIBILITY_LABELS.get(
+                        eligibility, ELIGIBILITY_LABELS["checked_in"]
+                    ),
+                )
+            )
+
+        return PublicRaffleResponse(
+            eventName=event.name,
+            prizes=prizes,
+            totalWinners=total_winners,
+        )
 
     def get_prizes(self) -> dict[str, object]:
         event = latest_event_or_404(self.events)
@@ -398,6 +574,7 @@ class PrizeService:
             prizes.append(
                 {
                     "id": str(row.id),
+                    "eventDayId": row.event_day_id,
                     "name": row.title,
                     "description": row.description or "Keine Beschreibung hinterlegt.",
                     "category": category,
@@ -436,9 +613,7 @@ class PrizeService:
                     "value": str(drawn),
                     "subtitle": f"{round((drawn / len(prizes)) * 100) if prizes else 0}%",
                     "subtitleTone": "accent",
-                    "progress": round((drawn / len(prizes)) * 100)
-                    if prizes
-                    else 0,
+                    "progress": round((drawn / len(prizes)) * 100) if prizes else 0,
                 },
             ],
             "overview": {
@@ -470,11 +645,7 @@ class PrizeService:
             or "eintritt" in text_value
         ):
             return "Gutschein"
-        if (
-            "kaffee" in text_value
-            or "brunch" in text_value
-            or "korb" in text_value
-        ):
+        if "kaffee" in text_value or "brunch" in text_value or "korb" in text_value:
             return "Genuss"
         return "Sachpreis"
 

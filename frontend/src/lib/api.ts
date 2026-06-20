@@ -291,6 +291,7 @@ export type PrizeStatus = "Bereit" | "Offen" | "Reserviert";
 
 export interface PrizeRecord {
   id: string;
+  eventDayId: number;
   name: string;
   description: string;
   category: PrizeCategory;
@@ -446,6 +447,63 @@ interface PrizeRow {
 interface DrawRow {
   id: number;
   prize_id: number;
+}
+
+interface PublicPrizeRow {
+  id: number;
+  event_day_id: number;
+  title: string;
+  description: string | null;
+  value_chf: number | string | null;
+  winner_count: number | null;
+  eligibility: string | null;
+}
+
+export type PrizeEligibility = "all" | "checked_in";
+
+const ELIGIBILITY_LABELS: Record<PrizeEligibility, string> = {
+  all: "Alle registrierten Gäste",
+  checked_in: "Nur eingecheckte Gäste",
+};
+
+function eligibilityLabel(value: string | null): string {
+  return ELIGIBILITY_LABELS[(value as PrizeEligibility) ?? "checked_in"] ??
+    ELIGIBILITY_LABELS.checked_in;
+}
+
+export interface PrizeConfigInput {
+  eventDayId: number;
+  title: string;
+  description?: string;
+  valueChf?: number;
+  winnerCount: number;
+  eligibility: PrizeEligibility;
+}
+
+export interface PrizeConfigResult {
+  id: string;
+  eventDayId: number;
+  title: string;
+  description: string | null;
+  valueChf: string;
+  winnerCount: number;
+  eligibility: PrizeEligibility;
+}
+
+export interface PublicPrize {
+  id: string;
+  name: string;
+  description: string;
+  category: PrizeCategory;
+  value: string;
+  winnerCount: number;
+  eligibilityLabel: string;
+}
+
+export interface PublicRaffleData {
+  eventName: string;
+  prizes: PublicPrize[];
+  totalWinners: number;
 }
 
 async function getLatestEvent() {
@@ -1153,6 +1211,7 @@ async function fetchPrizesFromSupabase(): Promise<PrizeData> {
   const drawnPrizeIds = new Set((drawRows ?? []).map((draw) => draw.prize_id));
   const prizes: PrizeRecord[] = (prizeRows ?? []).map((prize) => ({
     id: String(prize.id),
+    eventDayId: prize.event_day_id,
     name: prize.title,
     description: prize.description || "Keine Beschreibung hinterlegt.",
     category: prizeCategory(prize.title, prize.description),
@@ -1446,6 +1505,100 @@ export function createCheckIn(guestId: string) {
     : createCheckInInSupabase(guestId);
 }
 
+async function fetchPublicRaffleFromSupabase(): Promise<PublicRaffleData> {
+  const supabase = await getSupabase();
+  const event = await getLatestEvent();
+  const eventDays = await getEventDays(event.id);
+  const eventDayIds = eventDays.map((day) => day.id);
+  const { data: prizeRows, error } = await supabase
+    .from("prizes")
+    .select(
+      "id, event_day_id, title, description, value_chf, winner_count, eligibility",
+    )
+    .in("event_day_id", eventDayIds)
+    .order("event_day_id", { ascending: true })
+    .order("id", { ascending: true })
+    .returns<PublicPrizeRow[]>();
+
+  assertSupabaseOk(error);
+
+  const prizes: PublicPrize[] = (prizeRows ?? []).map((prize) => ({
+    id: String(prize.id),
+    name: prize.title,
+    description: prize.description || "Keine Beschreibung hinterlegt.",
+    category: prizeCategory(prize.title, prize.description),
+    value: formatChf(prize.value_chf),
+    winnerCount: prize.winner_count ?? 1,
+    eligibilityLabel: eligibilityLabel(prize.eligibility),
+  }));
+  const totalWinners = prizes.reduce((sum, prize) => sum + prize.winnerCount, 0);
+
+  return { eventName: event.name, prizes, totalWinners };
+}
+
+async function savePrizeConfigInSupabase(
+  input: PrizeConfigInput,
+  prizeId?: string,
+): Promise<PrizeConfigResult> {
+  const supabase = await getSupabase();
+  const payload = {
+    event_day_id: input.eventDayId,
+    title: input.title.trim(),
+    description: cleanOptional(input.description),
+    value_chf: input.valueChf ?? 0,
+    winner_count: input.winnerCount,
+    eligibility: input.eligibility,
+  };
+  const builder = prizeId
+    ? supabase.from("prizes").update(payload).eq("id", prizeId)
+    : supabase.from("prizes").insert(payload);
+  const { data, error } = await builder
+    .select(
+      "id, event_day_id, title, description, value_chf, winner_count, eligibility",
+    )
+    .single<PublicPrizeRow>();
+
+  assertSupabaseOk(error);
+
+  if (!data) {
+    throw new Error("Preis konnte nicht gespeichert werden");
+  }
+
+  return {
+    id: String(data.id),
+    eventDayId: data.event_day_id,
+    title: data.title,
+    description: data.description,
+    valueChf: String(data.value_chf ?? 0),
+    winnerCount: data.winner_count ?? 1,
+    eligibility: (data.eligibility as PrizeEligibility) ?? "checked_in",
+  };
+}
+
+export function fetchPublicRaffle() {
+  return shouldUseHttpApi()
+    ? apiFetch<PublicRaffleData>("/prizes/public")
+    : fetchPublicRaffleFromSupabase();
+}
+
+export function createPrizeConfig(input: PrizeConfigInput) {
+  return shouldUseHttpApi()
+    ? apiFetch<PrizeConfigResult>("/prizes", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    : savePrizeConfigInSupabase(input);
+}
+
+export function updatePrizeConfig(prizeId: string, input: PrizeConfigInput) {
+  return shouldUseHttpApi()
+    ? apiFetch<PrizeConfigResult>(`/prizes/${prizeId}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      })
+    : savePrizeConfigInSupabase(input, prizeId);
+}
+
 export function fetchPrizes() {
   return shouldUseHttpApi() ? apiFetch<PrizeData>("/prizes") : fetchPrizesFromSupabase();
 }
@@ -1454,6 +1607,118 @@ export function fetchAnalytics() {
   return shouldUseHttpApi()
     ? apiFetch<AnalyticsData>("/analytics")
     : fetchAnalyticsFromSupabase();
+}
+
+export interface DuplicateGuestRef {
+  id: string;
+  name: string;
+  email: string | null;
+  city: string | null;
+}
+
+export interface DuplicatePair {
+  left: DuplicateGuestRef;
+  right: DuplicateGuestRef;
+  confidence: number;
+  reasons: string[];
+}
+
+export interface DuplicatesData {
+  pairs: DuplicatePair[];
+}
+
+export interface AiSettings {
+  enrichmentEnabled: boolean;
+  draftingEnabled: boolean;
+  model: string;
+  sharedFields: string[];
+}
+
+export interface EnrichmentSuggestion {
+  organization: string | null;
+  country: string | null;
+  confidence: number;
+}
+
+export interface EnrichmentResult {
+  guestId: string;
+  enabled: boolean;
+  sharedWithModel: string[];
+  suggestion: EnrichmentSuggestion | null;
+  message?: string | null;
+}
+
+export interface FairnessGroup {
+  group: string;
+  expectedShare: number;
+  observedShare: number;
+  deviation: number;
+  flagged: boolean;
+}
+
+export interface FairnessData {
+  fairnessScore: number;
+  runs: number;
+  winnerCount: number;
+  participantCount: number;
+  groups: FairnessGroup[];
+  edgeCases: string[];
+  recommendations: string[];
+}
+
+export interface SupportDraftResult {
+  enabled: boolean;
+  draft: string | null;
+  source: string;
+  auditId?: string | null;
+  message?: string | null;
+}
+
+export interface SupportMessageInput {
+  inquiry: string;
+  finalText: string;
+  source: "ai" | "edited" | "human";
+  guestCode?: string;
+}
+
+export interface SupportMessageResult {
+  id: string;
+  source: string;
+}
+
+export function fetchDuplicates(threshold = 70) {
+  return apiFetch<DuplicatesData>(`/guests/duplicates?threshold=${threshold}`);
+}
+
+export function fetchAiSettings() {
+  return apiFetch<AiSettings>("/ai/settings");
+}
+
+export function enrichGuest(guestId: string, consent: boolean) {
+  return apiFetch<EnrichmentResult>(`/guests/${guestId}/enrich`, {
+    method: "POST",
+    body: JSON.stringify({ consent }),
+  });
+}
+
+export function fetchFairness(winnerCount: number, runs = 1000) {
+  return apiFetch<FairnessData>(
+    `/raffle/fairness?winnerCount=${winnerCount}&runs=${runs}`,
+  );
+}
+
+export function draftSupportReply(inquiry: string, guestCode?: string) {
+  return apiFetch<SupportDraftResult>("/support/draft", {
+    method: "POST",
+    body: JSON.stringify({ inquiry, guestCode }),
+  });
+}
+
+export function recordSupportMessage(input: SupportMessageInput) {
+  return apiFetch<SupportMessageResult>("/support/messages", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export interface LoginResult {

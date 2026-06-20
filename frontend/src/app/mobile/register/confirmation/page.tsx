@@ -5,14 +5,13 @@ import {
   Calendar,
   Check,
   CircleUser,
-  Download,
   MapPin,
-  Printer,
   QrCode,
   Search,
   UserPlus,
 } from "lucide-react";
 
+import { ConfirmationActions } from "./ConfirmationActions";
 import { GuestQRCode } from "./GuestQRCode";
 
 const DEMO_CODE = "G-DEMO-001";
@@ -97,15 +96,7 @@ export default async function RegisterConfirmationPage({
             </div>
           </div>
 
-          <button className="mt-8 flex h-16 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#e12c39] to-[#b80018] text-xl font-extrabold text-white shadow-xl shadow-red-200">
-            <Download size={25} />
-            Als Bild speichern
-          </button>
-
-          <button className="mt-4 flex h-16 items-center justify-center gap-3 rounded-xl bg-[#eee7dc] text-xl font-extrabold">
-            <Printer size={25} />
-            Drucken
-          </button>
+          <ConfirmationActions code={code} />
         </section>
 
         <BottomNavigation active="new" />

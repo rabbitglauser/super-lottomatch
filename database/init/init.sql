@@ -1,4 +1,5 @@
 drop table if exists
+  support_drafts,
   campaign_recipients,
   mail_campaigns,
   draws,
@@ -147,7 +148,13 @@ create table prizes (
   title varchar(150) not null,
   description text,
   value_chf numeric(10, 2) not null default 0,
-  created_at timestamptz not null default now()
+  winner_count int not null default 1,
+  eligibility varchar(20) not null default 'checked_in',
+  created_at timestamptz not null default now(),
+
+  constraint chk_prizes_winner_count_positive check (winner_count > 0),
+  constraint chk_prizes_eligibility
+    check (eligibility in ('all', 'checked_in'))
 );
 
 create table draws (
@@ -190,6 +197,19 @@ create trigger trg_validate_draw_same_event
 before insert or update of prize_id, checkin_id on draws
 for each row
 execute function validate_draw_same_event();
+
+create table support_drafts (
+  id bigint generated always as identity primary key,
+  guest_id bigint references guests(id),
+  inquiry text not null,
+  draft text,
+  final_text text,
+  source varchar(20) not null default 'ai',
+  created_at timestamptz not null default now(),
+
+  constraint chk_support_drafts_source
+    check (source in ('ai', 'edited', 'human'))
+);
 
 create table mail_campaigns (
   id bigint generated always as identity primary key,

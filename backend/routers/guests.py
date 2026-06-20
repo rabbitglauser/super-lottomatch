@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from core.config import GUEST_EXPORT_FILENAME
@@ -46,3 +45,9 @@ def search_guests(
 @router.patch("/guests/{guest_id}/marketing")
 def update_guest_marketing(guest_id: int, db: Session = Depends(get_db)):
     return GuestService(db).update_marketing(guest_id)
+
+
+@router.delete("/guests/{guest_id}", status_code=204)
+def delete_guest(guest_id: int, db: Session = Depends(get_db)) -> Response:
+    GuestService(db).delete_guest(guest_id)
+    return Response(status_code=204)

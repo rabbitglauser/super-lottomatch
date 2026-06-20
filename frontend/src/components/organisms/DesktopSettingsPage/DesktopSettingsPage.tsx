@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -68,6 +68,12 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
   liveCheckin: true,
   newImports: false,
   reportSummary: true,
+};
+const SETTINGS_STORAGE_KEY = "super-lottomatch-settings";
+
+type StoredSettings = {
+  generalSettings?: Partial<GeneralSettingsState>;
+  notificationSettings?: Partial<NotificationSettingsState>;
 };
 
 const QUICK_STATUSES: QuickStatusRecord[] = [
@@ -721,6 +727,33 @@ export default function DesktopSettingsPage() {
   });
   const [notificationSettings, setNotificationSettings] =
     useState<NotificationSettingsState>({ ...DEFAULT_NOTIFICATION_SETTINGS });
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const storedValue = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+
+      if (!storedValue) {
+        return;
+      }
+
+      try {
+        const storedSettings = JSON.parse(storedValue) as StoredSettings;
+        setGeneralSettings({
+          ...DEFAULT_GENERAL_SETTINGS,
+          ...storedSettings.generalSettings,
+        });
+        setNotificationSettings({
+          ...DEFAULT_NOTIFICATION_SETTINGS,
+          ...storedSettings.notificationSettings,
+        });
+      } catch {
+        window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
 
   const handleGeneralSettingChange = <K extends keyof GeneralSettingsState>(
     key: K,
@@ -747,18 +780,24 @@ export default function DesktopSettingsPage() {
   const handleReset = () => {
     setGeneralSettings({ ...DEFAULT_GENERAL_SETTINGS });
     setNotificationSettings({ ...DEFAULT_NOTIFICATION_SETTINGS });
-    console.info("Einstellungen wurden auf Standardwerte zurückgesetzt.");
+    window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    setSaveMessage("Einstellungen wurden auf Standardwerte zurückgesetzt.");
   };
 
   const handleSave = () => {
-    console.info("Einstellungen gespeichert", {
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
       generalSettings,
       notificationSettings,
-    });
+    }));
+    setSaveMessage("Einstellungen wurden in diesem Browser gespeichert.");
   };
 
-  const handlePlaceholderAction = (label: string) => {
-    console.info(`${label} ist noch nicht verbunden.`);
+  const handleUnavailableAccountAction = (label: string) => {
+    setSaveMessage(`${label} ist noch nicht mit einem Konto-Backend verbunden.`);
+  };
+
+  const handleSupport = () => {
+    window.location.href = "mailto:admin@superlottomatch.ch?subject=Support%20SuperLottomatch";
   };
 
   return (
@@ -792,11 +831,17 @@ export default function DesktopSettingsPage() {
           </PageReveal>
         </header>
 
+        {saveMessage ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-charcoal shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {saveMessage}
+          </p>
+        ) : null}
+
         <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1.55fr)_360px]">
           <PageReveal delay={220} variant="left" className="h-full w-full">
             <ProfileCard
               onProfileImageChange={() =>
-                handlePlaceholderAction("Profilbild ändern")
+                handleUnavailableAccountAction("Profilbild ändern")
               }
             />
           </PageReveal>
@@ -824,23 +869,23 @@ export default function DesktopSettingsPage() {
           <PageReveal delay={540} variant="up" className="h-full w-full">
             <SecurityCard
               onPasswordChange={() =>
-                handlePlaceholderAction("Passwort ändern")
+                handleUnavailableAccountAction("Passwort ändern")
               }
               onManageDevices={() =>
-                handlePlaceholderAction("Alle Geräte anzeigen")
+                handleUnavailableAccountAction("Alle Geräte anzeigen")
               }
             />
           </PageReveal>
           <PageReveal delay={620} variant="up" className="h-full w-full">
             <BrandingStandardsCard
               onEditBranding={() =>
-                handlePlaceholderAction("Branding bearbeiten")
+                handleUnavailableAccountAction("Branding bearbeiten")
               }
             />
           </PageReveal>
           <PageReveal delay={700} variant="up" className="h-full w-full">
             <HelpCenterCard
-              onSupport={() => handlePlaceholderAction("Support kontaktieren")}
+              onSupport={handleSupport}
             />
           </PageReveal>
         </div>

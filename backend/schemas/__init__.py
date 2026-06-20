@@ -3,6 +3,24 @@ from typing import Literal
 from pydantic import BaseModel
 
 
+class EventDayCreateRequest(BaseModel):
+    date: str
+
+
+class EventCreateRequest(BaseModel):
+    name: str
+    year: int
+    location: str | None = None
+    days: list[EventDayCreateRequest]
+
+
+class EventCreateResponse(BaseModel):
+    id: str
+    name: str
+    year: int
+    dayCount: int
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -53,3 +71,38 @@ class CheckInByCodeResponse(BaseModel):
     id: str
     checkedInAt: str | None
     guest: GuestSearchResult
+
+
+class PrizeConfigRequest(BaseModel):
+    eventDayId: int
+    title: str
+    description: str | None = None
+    valueChf: float = 0
+    winnerCount: int = 1
+    eligibility: Literal["all", "checked_in"] = "checked_in"
+
+
+class PrizeConfigResponse(BaseModel):
+    id: str
+    eventDayId: int
+    title: str
+    description: str | None
+    valueChf: str
+    winnerCount: int
+    eligibility: Literal["all", "checked_in"]
+
+
+class PublicPrizeView(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str
+    value: str
+    winnerCount: int
+    eligibilityLabel: str
+
+
+class PublicRaffleResponse(BaseModel):
+    eventName: str
+    prizes: list[PublicPrizeView]
+    totalWinners: int

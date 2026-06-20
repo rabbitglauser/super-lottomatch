@@ -91,7 +91,7 @@ export default function DesktopLoginForm() {
 
       <div className="space-y-2 text-center sm:space-y-3">
         <a
-          href="#"
+          href="mailto:admin@superlottomatch.ch?subject=Passwort%20zuruecksetzen"
           className="block text-sm font-semibold text-brand transition hover:underline sm:text-base lg:text-lg"
         >
           Passwort vergessen?
@@ -100,7 +100,7 @@ export default function DesktopLoginForm() {
         <p className="text-xs text-muted-foreground sm:text-sm">
           Probleme beim Login?{" "}
           <a
-            href="#"
+            href="mailto:admin@superlottomatch.ch?subject=Login%20Support"
             className="font-semibold text-brand transition hover:underline"
           >
             Support kontaktieren

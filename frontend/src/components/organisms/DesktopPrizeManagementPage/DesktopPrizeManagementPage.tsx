@@ -5,6 +5,7 @@ import {
   useDeferredValue,
   useMemo,
   useState,
+  type FormEvent,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -28,14 +29,19 @@ import {
   Trophy,
   Upload,
   Wine,
+  X,
 } from "lucide-react";
 
 import PageReveal from "@/components/atoms/PageReveal";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import { Button } from "@/components/ui/button";
 import {
+  createPrizeConfig,
+  fetchDashboardData,
   deletePrize,
   fetchPrizes,
+  updatePrizeConfig,
+  type PrizeConfigInput,
   type PrizeCategory,
   type PrizeData,
   type PrizeKpi,
@@ -49,6 +55,7 @@ type PrizeFilter = "all" | PrizeCategory | PrizeStatus;
 
 type PrizeViewModel = PrizeRecord & { icon: LucideIcon };
 type PrizeKpiViewModel = PrizeKpi & { icon: LucideIcon };
+type PrizeFormMode = "create" | "edit";
 
 const FILTER_OPTIONS: { value: PrizeFilter; label: string }[] = [
   { value: "all", label: "Alle Kategorien" },
@@ -73,6 +80,7 @@ const statusClassNames: Record<PrizeStatus, string> = {
 
 const surfaceClassName =
   "min-w-0 rounded-[28px] border border-black/5 bg-white shadow-[0_18px_42px_rgba(116,82,82,0.08)]";
+const PRIZES_PER_PAGE = 6;
 
 const kpiIcons = [Gift, Coins, Trophy, Target] as const;
 
@@ -307,6 +315,249 @@ function PrizeRowMenu({
   );
 }
 
+function parsePrizeValue(value: string) {
+  const numeric = Number(value.replace(/[^\d.,-]/g, "").replace(",", "."));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function PrizeDetailsModal({
+  prize,
+  onClose,
+}: {
+  prize: PrizeViewModel;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-8 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-[0_30px_80px_rgba(42,23,23,0.24)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <PrizeIconTile icon={prize.icon} />
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-semibold tracking-tight text-charcoal">
+                {prize.name}
+              </h2>
+              <p className="mt-1 text-sm text-muted-warm">{prize.description}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schliessen"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-warm transition hover:bg-[#fff4f4]"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 rounded-[22px] border border-[#f0e4e4] bg-[#fffdfd] p-4 sm:grid-cols-2">
+          <DetailItem label="Kategorie" value={prize.category} />
+          <DetailItem label="Sponsor" value={prize.sponsor} />
+          <DetailItem label="Wert" value={prize.value} />
+          <DetailItem label="Status" value={prize.status} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#fff8f8] px-4 py-3">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-warm/80">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-semibold text-charcoal">{value}</p>
+    </div>
+  );
+}
+
+function PrizeFormModal({
+  mode,
+  prize,
+  fallbackEventDayId,
+  onClose,
+  onSubmit,
+}: {
+  mode: PrizeFormMode;
+  prize?: PrizeViewModel;
+  fallbackEventDayId: number | null;
+  onClose: () => void;
+  onSubmit: (input: PrizeConfigInput, prizeId?: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState(prize?.name ?? "");
+  const [description, setDescription] = useState(
+    prize?.description === "Keine Beschreibung hinterlegt." ? "" : prize?.description ?? "",
+  );
+  const [valueChf, setValueChf] = useState(String(parsePrizeValue(prize?.value ?? "0")));
+  const [winnerCount, setWinnerCount] = useState("1");
+  const [eligibility, setEligibility] = useState<PrizeConfigInput["eligibility"]>(
+    "checked_in",
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const eventDayId = prize?.eventDayId ?? fallbackEventDayId;
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!eventDayId) {
+      setFormError("Kein Event-Tag für den Preis gefunden.");
+      return;
+    }
+
+    if (!title.trim()) {
+      setFormError("Bitte einen Preisnamen eingeben.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError(null);
+
+    try {
+      await onSubmit(
+        {
+          eventDayId,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          valueChf: Number(valueChf) || 0,
+          winnerCount: Math.max(1, Number(winnerCount) || 1),
+          eligibility,
+        },
+        prize?.id,
+      );
+    } catch {
+      setFormError("Preis konnte nicht gespeichert werden.");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-8 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-xl rounded-[28px] bg-white p-6 shadow-[0_30px_80px_rgba(42,23,23,0.24)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-2xl font-semibold tracking-tight text-charcoal">
+            {mode === "create" ? "Preis erstellen" : "Preis bearbeiten"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schliessen"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-warm transition hover:bg-[#fff4f4]"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <PrizeModalField label="Name">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="h-12 w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] px-4 text-sm outline-none focus:ring-4 focus:ring-accent-red/10"
+            />
+          </PrizeModalField>
+          <PrizeModalField label="Wert CHF">
+            <input
+              type="number"
+              min="0"
+              step="0.05"
+              value={valueChf}
+              onChange={(event) => setValueChf(event.target.value)}
+              className="h-12 w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] px-4 text-sm outline-none focus:ring-4 focus:ring-accent-red/10"
+            />
+          </PrizeModalField>
+          <PrizeModalField label="Gewinner">
+            <input
+              type="number"
+              min="1"
+              value={winnerCount}
+              onChange={(event) => setWinnerCount(event.target.value)}
+              className="h-12 w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] px-4 text-sm outline-none focus:ring-4 focus:ring-accent-red/10"
+            />
+          </PrizeModalField>
+          <PrizeModalField label="Teilnahme">
+            <select
+              value={eligibility}
+              onChange={(event) =>
+                setEligibility(event.target.value as PrizeConfigInput["eligibility"])
+              }
+              className="h-12 w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] px-4 text-sm outline-none focus:ring-4 focus:ring-accent-red/10"
+            >
+              <option value="checked_in">Eingecheckte Gäste</option>
+              <option value="all">Alle Gäste</option>
+            </select>
+          </PrizeModalField>
+          <label className="block sm:col-span-2">
+            <span className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-warm/80">
+              Beschreibung
+            </span>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="min-h-24 w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-accent-red/10"
+            />
+          </label>
+        </div>
+
+        {formError ? (
+          <p className="mt-5 rounded-2xl bg-[#fdecec] px-4 py-3 text-sm font-medium text-accent-red">
+            {formError}
+          </p>
+        ) : null}
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            className="h-12 rounded-2xl border-0 bg-[#f5e8e8] px-6 text-sm font-semibold text-charcoal hover:bg-[#efdddd]"
+          >
+            Abbrechen
+          </Button>
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="h-12 rounded-2xl bg-gradient-to-r from-[#f03a49] to-[#b90f1d] px-6 text-sm font-semibold text-white hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? "Speichern..." : "Speichern"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function PrizeModalField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-warm/80">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
 function PrizeDesktopRow({
   prize,
   onAction,
@@ -416,17 +667,25 @@ function PrizeMobileCard({
 }
 
 function PrizePagination({
+  currentPage,
+  onPageChange,
+  pageCount,
   visibleCount,
   totalCount,
 }: {
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  pageCount: number;
   visibleCount: number;
   totalCount: number;
 }) {
-  const paginationItems = ["1", "2", "3", "…", "5"];
+  const paginationItems = Array.from({ length: pageCount }, (_, index) => index + 1);
+  const firstVisible = totalCount === 0 ? 0 : (currentPage - 1) * PRIZES_PER_PAGE + 1;
+  const lastVisible = Math.min(totalCount, firstVisible + visibleCount - 1);
   const rangeLabel =
     visibleCount === 0
       ? `0 von ${totalCount} Preisen`
-      : `1–${visibleCount} von ${totalCount} Preisen`;
+      : `${firstVisible}–${lastVisible} von ${totalCount} Preisen`;
 
   return (
     <div className="mt-6 flex flex-col gap-4 border-t border-[#f0e4e4] pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -435,8 +694,9 @@ function PrizePagination({
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          disabled
-          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#eadede] bg-white text-muted-warm/50"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#eadede] bg-white text-charcoal transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:text-muted-warm/50"
         >
           <ChevronLeft className="size-4" />
         </button>
@@ -445,14 +705,12 @@ function PrizePagination({
           <button
             key={item}
             type="button"
-            disabled={item === "…"}
+            onClick={() => onPageChange(item)}
             className={cn(
               "inline-flex min-w-9 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition",
-              item === "1"
+              item === currentPage
                 ? "bg-accent-red text-white shadow-[0_12px_24px_rgba(223,38,52,0.2)]"
-                : item === "…"
-                  ? "cursor-default text-muted-warm"
-                  : "border border-[#eadede] bg-white text-charcoal hover:bg-[#fff7f7]",
+                : "border border-[#eadede] bg-white text-charcoal hover:bg-[#fff7f7]",
             )}
           >
             {item}
@@ -461,7 +719,9 @@ function PrizePagination({
 
         <button
           type="button"
-          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#eadede] bg-white text-charcoal transition hover:bg-[#fff7f7]"
+          disabled={currentPage >= pageCount}
+          onClick={() => onPageChange(currentPage + 1)}
+          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#eadede] bg-white text-charcoal transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:text-muted-warm/50"
         >
           <ChevronRight className="size-4" />
         </button>
@@ -592,11 +852,23 @@ export default function DesktopPrizeManagementPage() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [eventDayId, setEventDayId] = useState<number | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [selectedPrize, setSelectedPrize] = useState<PrizeViewModel | null>(null);
+  const [prizeForm, setPrizeForm] = useState<{
+    mode: PrizeFormMode;
+    prize?: PrizeViewModel;
+  } | null>(null);
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
-    fetchPrizes()
-      .then((data) => setPrizeData(mapPrizeData(data)))
+    Promise.all([fetchPrizes(), fetchDashboardData()])
+      .then(([data, dashboardData]) => {
+        setPrizeData(mapPrizeData(data));
+        const firstEventDayId = Number(dashboardData.eventDays[0]?.id);
+        setEventDayId(Number.isFinite(firstEventDayId) ? firstEventDayId : null);
+      })
       .catch(() => setError("Preisdaten konnten nicht geladen werden."));
   }, []);
 
@@ -623,9 +895,52 @@ export default function DesktopPrizeManagementPage() {
         .includes(normalizedQuery);
     });
   }, [normalizedQuery, prizeData, selectedFilter]);
+  const pageCount = Math.max(1, Math.ceil(filteredPrizes.length / PRIZES_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, pageCount);
+  const paginatedPrizes = filteredPrizes.slice(
+    (safeCurrentPage - 1) * PRIZES_PER_PAGE,
+    safeCurrentPage * PRIZES_PER_PAGE,
+  );
 
-  const handlePlaceholderAction = (label: string) => {
-    console.info(`${label} ist noch nicht verbunden.`);
+  const refreshPrizes = async () => {
+    const data = await fetchPrizes();
+    setPrizeData(mapPrizeData(data));
+  };
+
+  const handlePrizeAction = (label: string) => {
+    if (label.startsWith("Details anzeigen")) {
+      const prizeName = label.split("–").at(-1)?.trim();
+      const prize = prizeData?.prizes.find((item) => item.name === prizeName);
+      setSelectedPrize(prize ?? null);
+      return;
+    }
+
+    if (label.startsWith("Bearbeiten")) {
+      const prizeName = label.split("–").at(-1)?.trim();
+      const prize = prizeData?.prizes.find((item) => item.name === prizeName);
+      if (prize) {
+        setPrizeForm({ mode: "edit", prize });
+      }
+      return;
+    }
+
+    setStatusMessage("Der Auslosungsstatus wird über die Verlosung verwaltet.");
+  };
+
+  const handleSubmitPrize = async (
+    input: PrizeConfigInput,
+    prizeId?: string,
+  ) => {
+    setError(null);
+    if (prizeId) {
+      await updatePrizeConfig(prizeId, input);
+      setStatusMessage("Preis wurde aktualisiert.");
+    } else {
+      await createPrizeConfig(input);
+      setStatusMessage("Preis wurde erstellt.");
+    }
+    await refreshPrizes();
+    setPrizeForm(null);
   };
 
   const handleDeletePrize = (prizeId: string) => {
@@ -677,14 +992,16 @@ export default function DesktopPrizeManagementPage() {
               <HeaderActionButton
                 icon={Upload}
                 variant="secondary"
-                onClick={() => handlePlaceholderAction("Preise importieren")}
+                onClick={() =>
+                  setStatusMessage("Preisimport wird noch nicht unterstützt. Bitte Preise einzeln erstellen.")
+                }
               >
                 Importieren
               </HeaderActionButton>
               <HeaderActionButton
                 icon={Plus}
                 variant="primary"
-                onClick={() => handlePlaceholderAction("Preis erstellen")}
+                onClick={() => setPrizeForm({ mode: "create" })}
               >
                 Preis erstellen
               </HeaderActionButton>
@@ -695,6 +1012,12 @@ export default function DesktopPrizeManagementPage() {
         {error ? (
           <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-accent-red shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
             {error}
+          </p>
+        ) : null}
+
+        {statusMessage ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-charcoal shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {statusMessage}
           </p>
         ) : null}
 
@@ -720,7 +1043,10 @@ export default function DesktopPrizeManagementPage() {
                   <input
                     type="search"
                     value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setCurrentPage(1);
+                    }}
                     placeholder="Preise nach Name, Sponsor oder Kategorie suchen..."
                     className="h-[58px] w-full rounded-2xl border border-[#eadede] bg-[#fffdfd] pl-12 pr-4 text-sm text-charcoal shadow-[0_10px_24px_rgba(31,29,29,0.04)] outline-none transition placeholder:text-muted-warm/80 focus:border-accent-red/25 focus:ring-4 focus:ring-accent-red/10"
                   />
@@ -728,7 +1054,10 @@ export default function DesktopPrizeManagementPage() {
 
                 <PrizeFilterMenu
                   selectedFilter={selectedFilter}
-                  onSelect={setSelectedFilter}
+                  onSelect={(filter) => {
+                    setSelectedFilter(filter);
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
 
@@ -742,7 +1071,7 @@ export default function DesktopPrizeManagementPage() {
                   <span />
                 </div>
 
-                {filteredPrizes.length === 0 ? (
+                {paginatedPrizes.length === 0 ? (
                   <div className="px-6 py-12 text-center">
                     <p className="text-base font-semibold text-charcoal">
                       Keine Preise gefunden
@@ -754,17 +1083,17 @@ export default function DesktopPrizeManagementPage() {
                 ) : (
                   <>
                     <div className="hidden lg:block">
-                      {filteredPrizes.map((prize, index) => (
+                      {paginatedPrizes.map((prize, index) => (
                         <div
                           key={prize.id}
                           className={cn(
-                            index !== filteredPrizes.length - 1 &&
+                            index !== paginatedPrizes.length - 1 &&
                               "border-b border-[#f0e4e4]",
                           )}
                         >
                           <PrizeDesktopRow
                             prize={prize}
-                            onAction={handlePlaceholderAction}
+                            onAction={handlePrizeAction}
                             onDelete={() => handleDeletePrize(prize.id)}
                           />
                         </div>
@@ -772,11 +1101,11 @@ export default function DesktopPrizeManagementPage() {
                     </div>
 
                     <div className="space-y-3 p-3 lg:hidden">
-                      {filteredPrizes.map((prize) => (
+                      {paginatedPrizes.map((prize) => (
                         <PrizeMobileCard
                           key={prize.id}
                           prize={prize}
-                          onAction={handlePlaceholderAction}
+                          onAction={handlePrizeAction}
                           onDelete={() => handleDeletePrize(prize.id)}
                         />
                       ))}
@@ -786,8 +1115,13 @@ export default function DesktopPrizeManagementPage() {
               </div>
 
               <PrizePagination
-                visibleCount={filteredPrizes.length}
-                totalCount={prizeData?.prizes.length ?? 0}
+                currentPage={safeCurrentPage}
+                onPageChange={(page) =>
+                  setCurrentPage(Math.min(Math.max(1, page), pageCount))
+                }
+                pageCount={pageCount}
+                visibleCount={paginatedPrizes.length}
+                totalCount={filteredPrizes.length}
               />
             </SurfaceCard>
           </PageReveal>
@@ -802,13 +1136,30 @@ export default function DesktopPrizeManagementPage() {
             <PageReveal delay={800} variant="right" className="h-full w-full">
               <PrizeHintCard
                 onAdjust={() =>
-                  handlePlaceholderAction("Preiseinstellungen anpassen")
+                  setStatusMessage("Reihenfolge und Regeln werden im Preisformular festgelegt.")
                 }
               />
             </PageReveal>
           </aside>
         </div>
       </div>
+
+      {selectedPrize ? (
+        <PrizeDetailsModal
+          prize={selectedPrize}
+          onClose={() => setSelectedPrize(null)}
+        />
+      ) : null}
+
+      {prizeForm ? (
+        <PrizeFormModal
+          mode={prizeForm.mode}
+          prize={prizeForm.prize}
+          fallbackEventDayId={eventDayId}
+          onClose={() => setPrizeForm(null)}
+          onSubmit={handleSubmitPrize}
+        />
+      ) : null}
     </div>
   );
 }

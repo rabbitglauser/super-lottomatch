@@ -574,6 +574,7 @@ class PrizeService:
             prizes.append(
                 {
                     "id": str(row.id),
+                    "eventDayId": row.event_day_id,
                     "name": row.title,
                     "description": row.description or "Keine Beschreibung hinterlegt.",
                     "category": category,

@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Camera,
@@ -19,6 +20,7 @@ import {
   Search,
   Settings,
   SlidersHorizontal,
+  X,
   UserX,
   Users,
 } from "lucide-react";
@@ -403,6 +405,66 @@ function GuestMobileCard({
   );
 }
 
+function GuestDetailsModal({
+  guest,
+  onClose,
+}: {
+  guest: GuestRecord;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-8 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-[0_30px_80px_rgba(42,23,23,0.24)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <GuestAvatar initials={guest.initials} status={guest.status} />
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-semibold tracking-tight text-charcoal">
+                {guest.name}
+              </h2>
+              <p className="mt-1 truncate text-sm text-muted-warm">
+                {guest.email}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schliessen"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-warm transition hover:bg-[#fff4f4]"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 rounded-[22px] border border-[#f0e4e4] bg-[#fffdfd] p-4 sm:grid-cols-2">
+          <DetailItem label="Ticket" value={guest.ticket} />
+          <DetailItem label="Ort / Gruppe" value={guest.group} />
+          <DetailItem label="Status" value={statusStyles[guest.status].label} />
+          <DetailItem label="Check-in Zeit" value={guest.time ?? "Noch offen"} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#fff8f8] px-4 py-3">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-warm/80">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-semibold text-charcoal">{value}</p>
+    </div>
+  );
+}
+
 function TicketScannerCard({
   onActivateCamera,
 }: {
@@ -577,11 +639,13 @@ function RecentCheckInsCard({
 }
 
 export default function CheckInDashboardPage() {
+  const router = useRouter();
   const [guests, setGuests] = useState<GuestRecord[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<GuestFilter>("all");
   const [visibleCount, setVisibleCount] = useState(5);
   const [error, setError] = useState<string | null>(null);
+  const [selectedGuest, setSelectedGuest] = useState<GuestRecord | null>(null);
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
@@ -635,10 +699,6 @@ export default function CheckInDashboardPage() {
     .filter((guest) => guest.status === "checked-in" && guest.time)
     .sort((left, right) => parseTimeToMinutes(right.time) - parseTimeToMinutes(left.time))
     .slice(0, 4);
-
-  const handlePlaceholderAction = (label: string) => {
-    console.info(`${label} ist noch nicht verbunden.`);
-  };
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -705,6 +765,11 @@ export default function CheckInDashboardPage() {
     );
   };
 
+  const handleViewAllCheckIns = () => {
+    setStatusFilter("checked-in");
+    setVisibleCount(Math.max(guests.length, 5));
+  };
+
   return (
     <div className="min-h-screen w-full bg-page-dashboard">
       <div className="w-full px-6 py-8 md:px-8 xl:px-10 xl:py-10">
@@ -725,7 +790,7 @@ export default function CheckInDashboardPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handlePlaceholderAction("Check-in Einstellungen")}
+              onClick={() => router.push("/dashboard/settings")}
               className="h-12 rounded-xl border-[#eadede] bg-white px-4 text-charcoal shadow-[0_14px_30px_rgba(31,29,29,0.05)] hover:bg-[#fff7f7]"
             >
               <Settings className="size-4 text-accent-red" />
@@ -828,11 +893,7 @@ export default function CheckInDashboardPage() {
                         >
                           <GuestListRow
                             guest={guest}
-                            onShowDetails={(selectedGuest) =>
-                              handlePlaceholderAction(
-                                `Details für ${selectedGuest.name}`,
-                              )
-                            }
+                            onShowDetails={setSelectedGuest}
                             onManualCheckIn={handleManualCheckIn}
                             onCycleStatus={handleCycleStatus}
                           />
@@ -846,9 +907,7 @@ export default function CheckInDashboardPage() {
                           key={guest.id}
                           guest={guest}
                           onShowDetails={(selectedGuest) =>
-                            handlePlaceholderAction(
-                              `Details für ${selectedGuest.name}`,
-                            )
+                            setSelectedGuest(selectedGuest)
                           }
                           onManualCheckIn={handleManualCheckIn}
                           onCycleStatus={handleCycleStatus}
@@ -879,7 +938,7 @@ export default function CheckInDashboardPage() {
           <aside className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-1">
             <PageReveal delay={620} variant="right" className="h-full w-full">
               <TicketScannerCard
-                onActivateCamera={() => handlePlaceholderAction("Kamera aktivieren")}
+                onActivateCamera={() => router.push("/mobile/scanner")}
               />
             </PageReveal>
             <PageReveal delay={700} variant="right" className="h-full w-full">
@@ -888,12 +947,19 @@ export default function CheckInDashboardPage() {
             <PageReveal delay={780} variant="right" className="h-full w-full">
               <RecentCheckInsCard
                 guests={recentGuests}
-                onViewAll={() => handlePlaceholderAction("Alle Check-ins anzeigen")}
+                onViewAll={handleViewAllCheckIns}
               />
             </PageReveal>
           </aside>
         </div>
       </div>
+
+      {selectedGuest ? (
+        <GuestDetailsModal
+          guest={selectedGuest}
+          onClose={() => setSelectedGuest(null)}
+        />
+      ) : null}
     </div>
   );
 }

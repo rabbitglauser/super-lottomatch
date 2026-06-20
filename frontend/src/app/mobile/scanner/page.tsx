@@ -89,7 +89,11 @@ export default function MobileScannerPage() {
       return;
     }
 
-    if (!track.getCapabilities().torch) {
+    const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
+      torch?: boolean;
+    };
+
+    if (!capabilities.torch) {
       setMessage("Licht ist auf diesem Gerät nicht verfügbar.");
       return;
     }

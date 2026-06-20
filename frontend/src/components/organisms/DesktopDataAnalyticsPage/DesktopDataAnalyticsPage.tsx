@@ -120,6 +120,31 @@ function formatSwissDecimal(value: number) {
   return swissDecimalFormatter.format(value);
 }
 
+function downloadTextFile(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildAnalyticsCsv(data: AnalyticsData) {
+  return [
+    ["Kennzahl", "Wert"],
+    ["Gesamt Gäste", String(data.summary.totalGuests)],
+    ["Check-in Rate", `${data.summary.checkInRate}%`],
+    ["Aktive Events", String(data.summary.activeEvents)],
+    ["Verlosungen abgeschlossen", String(data.summary.completedDrawings)],
+  ]
+    .map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(";"))
+    .join("\n");
+}
+
 interface AnalyticsCardProps {
   title: string;
   action?: React.ReactNode;
@@ -740,6 +765,7 @@ function RightAnalyticsSidebar({
 export default function DesktopDataAnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAnalytics()
@@ -747,8 +773,34 @@ export default function DesktopDataAnalyticsPage() {
       .catch(() => setError("Analytics-Daten konnten nicht geladen werden."));
   }, []);
 
-  const handlePlaceholderAction = (actionLabel: string) => {
-    console.info(`${actionLabel} ist noch nicht verbunden.`);
+  const handleReportAction = async (actionLabel: string) => {
+    if (!analyticsData) {
+      return;
+    }
+
+    if (actionLabel.includes("CSV") || actionLabel.includes("exportieren")) {
+      downloadTextFile(
+        "superlottomatch-analytics.csv",
+        buildAnalyticsCsv(analyticsData),
+        "text/csv;charset=utf-8",
+      );
+      setStatusMessage("Analytics-CSV wurde heruntergeladen.");
+      return;
+    }
+
+    if (actionLabel.includes("PDF")) {
+      window.print();
+      setStatusMessage("Druckdialog für den PDF-Export wurde geöffnet.");
+      return;
+    }
+
+    if (actionLabel.includes("teilen")) {
+      await navigator.clipboard?.writeText(window.location.href);
+      setStatusMessage("Dashboard-Link wurde in die Zwischenablage kopiert.");
+      return;
+    }
+
+    setStatusMessage("Report-Vorlage wurde vorbereitet.");
   };
 
   return (
@@ -772,7 +824,7 @@ export default function DesktopDataAnalyticsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handlePlaceholderAction("Bericht exportieren")}
+                onClick={() => handleReportAction("Bericht exportieren")}
                 className="h-12 rounded-xl border-black/5 bg-white px-4 text-charcoal shadow-[0_14px_30px_rgba(31,29,29,0.05)] hover:bg-[#fff7f7]"
               >
                 <Download className="size-4" />
@@ -780,7 +832,7 @@ export default function DesktopDataAnalyticsPage() {
               </Button>
               <Button
                 type="button"
-                onClick={() => handlePlaceholderAction("Neuer Report")}
+                onClick={() => handleReportAction("Neuer Report")}
                 className="h-12 rounded-xl border-transparent bg-[linear-gradient(135deg,#df2634_0%,#b80012_100%)] px-4 text-white shadow-[0_18px_35px_rgba(223,38,52,0.24)] hover:opacity-95"
               >
                 <Plus className="size-4" />
@@ -793,6 +845,12 @@ export default function DesktopDataAnalyticsPage() {
         {error ? (
           <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-accent-red shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
             {error}
+          </p>
+        ) : null}
+
+        {statusMessage ? (
+          <p className="mt-6 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-charcoal shadow-[0_12px_28px_rgba(42,23,23,0.05)]">
+            {statusMessage}
           </p>
         ) : null}
 
@@ -867,8 +925,8 @@ export default function DesktopDataAnalyticsPage() {
           </div>
 
           <PageReveal delay={620} variant="right" className="h-full w-full">
-            <RightAnalyticsSidebar
-              onAction={handlePlaceholderAction}
+              <RightAnalyticsSidebar
+              onAction={handleReportAction}
               data={analyticsData}
             />
           </PageReveal>

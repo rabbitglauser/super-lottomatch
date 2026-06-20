@@ -291,6 +291,7 @@ export type PrizeStatus = "Bereit" | "Offen" | "Reserviert";
 
 export interface PrizeRecord {
   id: string;
+  eventDayId: number;
   name: string;
   description: string;
   category: PrizeCategory;
@@ -1210,6 +1211,7 @@ async function fetchPrizesFromSupabase(): Promise<PrizeData> {
   const drawnPrizeIds = new Set((drawRows ?? []).map((draw) => draw.prize_id));
   const prizes: PrizeRecord[] = (prizeRows ?? []).map((prize) => ({
     id: String(prize.id),
+    eventDayId: prize.event_day_id,
     name: prize.title,
     description: prize.description || "Keine Beschreibung hinterlegt.",
     category: prizeCategory(prize.title, prize.description),
@@ -1605,6 +1607,118 @@ export function fetchAnalytics() {
   return shouldUseHttpApi()
     ? apiFetch<AnalyticsData>("/analytics")
     : fetchAnalyticsFromSupabase();
+}
+
+export interface DuplicateGuestRef {
+  id: string;
+  name: string;
+  email: string | null;
+  city: string | null;
+}
+
+export interface DuplicatePair {
+  left: DuplicateGuestRef;
+  right: DuplicateGuestRef;
+  confidence: number;
+  reasons: string[];
+}
+
+export interface DuplicatesData {
+  pairs: DuplicatePair[];
+}
+
+export interface AiSettings {
+  enrichmentEnabled: boolean;
+  draftingEnabled: boolean;
+  model: string;
+  sharedFields: string[];
+}
+
+export interface EnrichmentSuggestion {
+  organization: string | null;
+  country: string | null;
+  confidence: number;
+}
+
+export interface EnrichmentResult {
+  guestId: string;
+  enabled: boolean;
+  sharedWithModel: string[];
+  suggestion: EnrichmentSuggestion | null;
+  message?: string | null;
+}
+
+export interface FairnessGroup {
+  group: string;
+  expectedShare: number;
+  observedShare: number;
+  deviation: number;
+  flagged: boolean;
+}
+
+export interface FairnessData {
+  fairnessScore: number;
+  runs: number;
+  winnerCount: number;
+  participantCount: number;
+  groups: FairnessGroup[];
+  edgeCases: string[];
+  recommendations: string[];
+}
+
+export interface SupportDraftResult {
+  enabled: boolean;
+  draft: string | null;
+  source: string;
+  auditId?: string | null;
+  message?: string | null;
+}
+
+export interface SupportMessageInput {
+  inquiry: string;
+  finalText: string;
+  source: "ai" | "edited" | "human";
+  guestCode?: string;
+}
+
+export interface SupportMessageResult {
+  id: string;
+  source: string;
+}
+
+export function fetchDuplicates(threshold = 70) {
+  return apiFetch<DuplicatesData>(`/guests/duplicates?threshold=${threshold}`);
+}
+
+export function fetchAiSettings() {
+  return apiFetch<AiSettings>("/ai/settings");
+}
+
+export function enrichGuest(guestId: string, consent: boolean) {
+  return apiFetch<EnrichmentResult>(`/guests/${guestId}/enrich`, {
+    method: "POST",
+    body: JSON.stringify({ consent }),
+  });
+}
+
+export function fetchFairness(winnerCount: number, runs = 1000) {
+  return apiFetch<FairnessData>(
+    `/raffle/fairness?winnerCount=${winnerCount}&runs=${runs}`,
+  );
+}
+
+export function draftSupportReply(inquiry: string, guestCode?: string) {
+  return apiFetch<SupportDraftResult>("/support/draft", {
+    method: "POST",
+    body: JSON.stringify({ inquiry, guestCode }),
+  });
+}
+
+export function recordSupportMessage(input: SupportMessageInput) {
+  return apiFetch<SupportMessageResult>("/support/messages", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export interface LoginResult {
